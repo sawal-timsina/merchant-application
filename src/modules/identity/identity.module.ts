@@ -8,11 +8,13 @@ import type { Env } from '../../core/config/env';
 import { AuthService } from './application/auth.service';
 import { PasswordHasher } from './application/password-hasher';
 import { RefreshTokenService } from './application/refresh-token.service';
+import { UsersService } from './application/users.service';
 import { RefreshToken } from './infrastructure/persistence/refresh-token.entity';
 import { User } from './infrastructure/persistence/user.entity';
 import { AuthController } from './presentation/auth.controller';
 import { JwtAuthGuard } from './presentation/jwt-auth.guard';
 import { RolesGuard } from './presentation/roles.guard';
+import { UsersController } from './presentation/users.controller';
 
 @Module({
   imports: [
@@ -35,11 +37,12 @@ import { RolesGuard } from './presentation/roles.guard';
       ],
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, UsersController],
   providers: [
     PasswordHasher,
     RefreshTokenService,
     AuthService,
+    UsersService,
     // Order matters: authenticate, then authorize, then rate-limit.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

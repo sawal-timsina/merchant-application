@@ -10,6 +10,9 @@ export function applyTestEnv(): void {
   process.env.NODE_ENV = 'test';
   process.env.LOG_LEVEL = process.env.TEST_LOG_LEVEL ?? 'silent';
   process.env.POSTGRES_DB = process.env.POSTGRES_TEST_DB ?? 'merchant_test';
+  // Each Jest project pins its audit store; a developer's AUDIT_STORE in .env must not leak in
+  // (setup-env-mongo.ts switches the integration-mongo project to mongo after this).
+  process.env.AUDIT_STORE = 'postgres';
   process.env.JWT_ACCESS_SECRET ??= randomBytes(48).toString('base64');
   process.env.KYB_WEBHOOK_SECRETS ??= randomBytes(32).toString('hex');
   // Tests send many requests from one IP; production limits are exercised by config, not here.

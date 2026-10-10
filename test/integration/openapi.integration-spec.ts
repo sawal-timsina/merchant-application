@@ -14,6 +14,8 @@ describe('OpenAPI document', () => {
         '/auth/refresh',
         '/auth/logout',
         '/auth/me',
+        '/users',
+        '/users/{id}',
         '/applications',
         '/applications/{id}',
         '/applications/{id}/submit',

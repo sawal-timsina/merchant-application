@@ -29,6 +29,7 @@ cp .env.example .env
 docker compose up -d          # or: podman compose up -d   (Postgres + Redis)
 pnpm migration:run
 pnpm db:seed                  # admin@, reviewer@, reviewer2@, sales@, sales2@example.com
+                              # (more SALES/REVIEWER users: POST /users as ADMIN)
 pnpm dev                      # API on :3000 and the worker, both in watch mode
 ```
 
@@ -135,15 +136,16 @@ Any other transition is refused with `409`. Applications are editable only in `D
 
 ### Authorization
 
-| Action                   | ADMIN | REVIEWER         | SALES    |
-| ------------------------ | ----- | ---------------- | -------- |
-| create                   | ✓     |                  | ✓        |
-| read / list              | all   | assigned to them | own only |
-| update, submit           | ✓     |                  | own only |
-| assign reviewer          | ✓     |                  |          |
-| record decision          |       | assigned to them |          |
-| retry failed risk review | ✓     |                  |          |
-| read audit trail         | ✓     |                  |          |
+| Action                                             | ADMIN | REVIEWER         | SALES    |
+| -------------------------------------------------- | ----- | ---------------- | -------- |
+| create                                             | ✓     |                  | ✓        |
+| read / list                                        | all   | assigned to them | own only |
+| update, submit                                     | ✓     |                  | own only |
+| assign reviewer                                    | ✓     |                  |          |
+| record decision                                    |       | assigned to them |          |
+| retry failed risk review                           | ✓     |                  |          |
+| create / list / deactivate users (SALES, REVIEWER) | ✓     |                  |          |
+| read audit trail                                   | ✓     |                  |          |
 
 Role checks run in a global guard; object-level checks use a CASL policy plus an equivalent SQL
 scope, so lists are filtered in the database and a unit test keeps the two consistent. A
@@ -225,23 +227,26 @@ kernels 6.19 and newer. See [adr/0007](adr/0007-mongodb-audit-store.md).
 
 ## API overview
 
-| Method | Path                                    | Purpose                                    |
-| ------ | --------------------------------------- | ------------------------------------------ |
-| POST   | `/auth/login`                           | access + refresh token                     |
-| POST   | `/auth/refresh` / `/auth/logout`        | rotate / revoke refresh tokens             |
-| GET    | `/auth/me`                              | current user                               |
-| POST   | `/applications`                         | create (DRAFT)                             |
-| GET    | `/applications?status=&page=&pageSize=` | list (scoped, filtered, paginated)         |
-| GET    | `/applications/:id`                     | read                                       |
-| PATCH  | `/applications/:id`                     | update while editable (`version` required) |
-| POST   | `/applications/:id/submit`              | submit for risk review                     |
-| POST   | `/applications/:id/assign`              | assign a reviewer (ADMIN)                  |
-| POST   | `/applications/:id/decision`            | approve / reject / request info            |
-| POST   | `/applications/:id/risk-review/retry`   | retry a failed risk review (ADMIN)         |
-| GET    | `/audit?entityType=&entityId=&action=`  | audit trail (ADMIN)                        |
-| GET    | `/audit/stats/decisions?from=&to=`      | decisions per reviewer per day (ADMIN)     |
-| POST   | `/webhooks/kyb`                         | signed KYB callback (callback mode)        |
-| GET    | `/health`                               | liveness + database check                  |
+| Method | Path                                    | Purpose                                                     |
+| ------ | --------------------------------------- | ----------------------------------------------------------- |
+| POST   | `/auth/login`                           | access + refresh token                                      |
+| POST   | `/auth/refresh` / `/auth/logout`        | rotate / revoke refresh tokens                              |
+| GET    | `/auth/me`                              | current user                                                |
+| POST   | `/users`                                | create a SALES or REVIEWER account (ADMIN)                  |
+| GET    | `/users?role=&page=&pageSize=`          | list users, e.g. to find reviewer ids (ADMIN)               |
+| PATCH  | `/users/:id`                            | deactivate / reactivate a SALES or REVIEWER account (ADMIN) |
+| POST   | `/applications`                         | create (DRAFT)                                              |
+| GET    | `/applications?status=&page=&pageSize=` | list (scoped, filtered, paginated)                          |
+| GET    | `/applications/:id`                     | read                                                        |
+| PATCH  | `/applications/:id`                     | update while editable (`version` required)                  |
+| POST   | `/applications/:id/submit`              | submit for risk review                                      |
+| POST   | `/applications/:id/assign`              | assign a reviewer (ADMIN)                                   |
+| POST   | `/applications/:id/decision`            | approve / reject / request info                             |
+| POST   | `/applications/:id/risk-review/retry`   | retry a failed risk review (ADMIN)                          |
+| GET    | `/audit?entityType=&entityId=&action=`  | audit trail (ADMIN)                                         |
+| GET    | `/audit/stats/decisions?from=&to=`      | decisions per reviewer per day (ADMIN)                      |
+| POST   | `/webhooks/kyb`                         | signed KYB callback (callback mode)                         |
+| GET    | `/health`                               | liveness + database check                                   |
 
 Every error has the shape `{ statusCode, error, message, details?, requestId }`; the
 `x-request-id` header ties a response to its logs, audit rows and background jobs.
