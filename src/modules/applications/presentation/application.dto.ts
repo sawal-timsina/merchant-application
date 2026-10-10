@@ -14,7 +14,12 @@ import {
   Min,
 } from 'class-validator';
 import { PageQueryDto } from '../../../core/http/pagination';
-import { ApplicationStatus, BusinessType, TaxIdType } from '../domain/application.enums';
+import {
+  ApplicationStatus,
+  BusinessType,
+  ReviewDecisionType,
+  TaxIdType,
+} from '../domain/application.enums';
 
 const MAX_CENTS = Number.MAX_SAFE_INTEGER;
 
@@ -77,4 +82,16 @@ export class ListApplicationsQueryDto extends PageQueryDto {
 
 export class AssignReviewerDto {
   @ApiProperty() @IsUUID() reviewerId!: string;
+}
+
+export class DecisionDto {
+  @ApiProperty({ enum: ReviewDecisionType })
+  @IsEnum(ReviewDecisionType)
+  decision!: ReviewDecisionType;
+
+  @ApiPropertyOptional({ description: 'Required for REJECT and REQUEST_INFO (10–2000 chars)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  reason?: string;
 }

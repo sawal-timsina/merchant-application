@@ -10,10 +10,18 @@ import { User } from '../../identity/infrastructure/persistence/user.entity';
 import { RiskEvent, type RiskReviewRequestedPayload } from '../../risk/domain/risk-events';
 import { RiskAssessmentStatus } from '../../risk/domain/risk.enums';
 import { RiskAssessment } from '../../risk/infrastructure/persistence/risk-assessment.entity';
-import { RiskStatus } from '../domain/application.enums';
+import { ApplicationStatus, ReviewDecisionType, RiskStatus } from '../domain/application.enums';
 import { ApplicationEvent, isAssignable, nextStatus } from '../domain/application-state-machine';
 import { MerchantApplication } from '../infrastructure/persistence/merchant-application.entity';
+import { ReviewDecision } from '../infrastructure/persistence/review-decision.entity';
+import type { DecisionDto } from '../presentation/application.dto';
 import { ApplicationsService, ENTITY_TYPE } from './applications.service';
+
+const DECISION_EVENT: Record<ReviewDecisionType, ApplicationEvent> = {
+  APPROVE: ApplicationEvent.APPROVE,
+  REJECT: ApplicationEvent.REJECT,
+  REQUEST_INFO: ApplicationEvent.REQUEST_INFO,
+};
 
 /** State-changing workflow steps: assignment, submission, decisions, risk retry. */
 @Injectable()
@@ -108,6 +116,42 @@ export class ApplicationWorkflowService {
         entityType: ENTITY_TYPE,
         entityId: id,
         metadata: { submissionVersion: application.submissionVersion },
+      });
+      return manager.findOneByOrFail(MerchantApplication, { id });
+    });
+  }
+
+  async decide(actor: Actor, id: string, dto: DecisionDto): Promise<MerchantApplication> {
+    const reason = dto.reason?.trim() ?? '';
+    if (dto.decision !== ReviewDecisionType.APPROVE && reason.length < 10) {
+      throw new BusinessRuleError(
+        'A reason of at least 10 characters is required to reject or request info',
+      );
+    }
+    return this.dataSource.transaction(async (manager) => {
+      // The row lock serialises concurrent decisions: the second sees the new status and gets 409.
+      const application = await this.applications.findVisibleOrFail(manager, actor, id, true);
+      this.applications.assertCan(actor, 'decide', application);
+      const status = nextStatus(application.status, DECISION_EVENT[dto.decision]);
+
+      await manager.insert(ReviewDecision, {
+        applicationId: id,
+        reviewerId: actor.id,
+        decision: dto.decision,
+        reason: reason || null,
+      });
+      const terminal =
+        status === ApplicationStatus.APPROVED || status === ApplicationStatus.REJECTED;
+      await manager.update(
+        MerchantApplication,
+        { id },
+        { status, ...(terminal ? { decidedAt: new Date() } : {}) },
+      );
+      await this.audit.record(manager, {
+        action: AuditAction.APPLICATION_DECISION_RECORDED,
+        entityType: ENTITY_TYPE,
+        entityId: id,
+        metadata: { decision: dto.decision, from: application.status, to: status },
       });
       return manager.findOneByOrFail(MerchantApplication, { id });
     });

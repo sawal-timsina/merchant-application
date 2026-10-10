@@ -26,6 +26,7 @@ import { ApplicationsService } from '../application/applications.service';
 import {
   AssignReviewerDto,
   CreateApplicationDto,
+  DecisionDto,
   ListApplicationsQueryDto,
   UpdateApplicationDto,
 } from './application.dto';
@@ -111,5 +112,20 @@ export class ApplicationsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ApplicationResponse> {
     return toApplicationResponse(await this.workflow.retryRisk(actor, id));
+  }
+
+  /**
+   * No @Roles: visibility (404 for reviewers not assigned) and the policy (403 for ADMIN/SALES)
+   * decide who may record a decision.
+   */
+  @Post(':id/decision')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ApplicationResponse })
+  async decide(
+    @CurrentActor() actor: Actor,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DecisionDto,
+  ): Promise<ApplicationResponse> {
+    return toApplicationResponse(await this.workflow.decide(actor, id, dto));
   }
 }
