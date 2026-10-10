@@ -36,6 +36,16 @@ curl -s localhost:3000/auth/login -H 'content-type: application/json' \
   -d '{"email":"sales@example.com","password":"<SEED_USER_PASSWORD>"}'
 ```
 
+### Run everything in containers
+
+```bash
+docker compose --profile app up -d --build   # migrate (one-off), api, worker + Postgres, Redis
+curl localhost:3000/health
+```
+
+The image is built once and started twice: `dist/main.js` for the API and `dist/worker.js` for
+the worker. The `migrate` service applies migrations before either starts.
+
 ## Scripts
 
 | Script                                     | What it does                                     |

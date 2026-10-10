@@ -32,6 +32,56 @@ services:
       timeout: 3s
       retries: 10
 
+  # Full stack in containers: `docker compose --profile app up -d --build`
+  migrate:
+    profiles: [app]
+    build: .
+    command:
+      [
+        'node',
+        'node_modules/typeorm/cli.js',
+        'migration:run',
+        '-d',
+        'dist/core/database/data-source.js',
+      ]
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    profiles: [app]
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    ports:
+      - '${PORT:-3000}:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    profiles: [app]
+    build: .
+    command: ['node', '--enable-source-maps', 'dist/worker.js']
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
 volumes:
   pgdata:
   redisdata:
