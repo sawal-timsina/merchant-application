@@ -84,4 +84,15 @@ export class ApplicationsController {
   ): Promise<ApplicationResponse> {
     return toApplicationResponse(await this.workflow.assignReviewer(actor, id, dto.reviewerId));
   }
+
+  @Post(':id/submit')
+  @HttpCode(200)
+  @Roles(UserRole.SALES, UserRole.ADMIN)
+  @ApiOkResponse({ type: ApplicationResponse })
+  async submit(
+    @CurrentActor() actor: Actor,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ApplicationResponse> {
+    return toApplicationResponse(await this.workflow.submit(actor, id));
+  }
 }

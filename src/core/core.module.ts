@@ -8,6 +8,7 @@ import {
   FieldEncryptionService,
 } from './crypto/field-encryption.service';
 import { parseKeyring } from './crypto/keyring';
+import { OutboxModule } from './outbox/outbox.module';
 import { buildDataSourceOptions } from './database/typeorm.config';
 import { RequestContextMiddleware } from './request-context/request-context.middleware';
 import { resolveRequestId } from './request-context/request-id';
@@ -16,6 +17,7 @@ import { resolveRequestId } from './request-context/request-id';
 @Global()
 @Module({
   imports: [
+    OutboxModule,
     // .env is loaded by Node itself (--env-file-if-exists), so every entry point
     // (api, worker, migration CLI, tests) reads configuration the same way.
     ConfigModule.forRoot({
@@ -67,7 +69,7 @@ import { resolveRequestId } from './request-context/request-id';
     },
     FieldEncryptionService,
   ],
-  exports: [FieldEncryptionService],
+  exports: [FieldEncryptionService, OutboxModule],
 })
 export class CoreModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
