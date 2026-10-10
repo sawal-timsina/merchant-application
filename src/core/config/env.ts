@@ -13,6 +13,16 @@ export const envSchema = z.object({
   POSTGRES_DB: z.string().min(1),
   DB_LOGGING: z.stringbool().default(false),
 
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  JWT_REFRESH_TTL_SECONDS: z.coerce.number().int().positive().default(604_800),
+  JWT_ISSUER: z.string().default('merchant-api'),
+  JWT_AUDIENCE: z.string().default('merchant-api'),
+
+  /** Requests per minute per IP across all routes, and for POST /auth/login. */
+  THROTTLE_LIMIT: z.coerce.number().int().positive().default(300),
+  LOGIN_THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
+
   /** Only read by `pnpm db:seed`; never needed at runtime. */
   SEED_USER_PASSWORD: z.string().min(12).optional(),
 

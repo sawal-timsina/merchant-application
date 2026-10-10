@@ -1,6 +1,7 @@
 import { validateEnv } from './env';
 
 const required = {
+  JWT_ACCESS_SECRET: 'x'.repeat(32),
   FIELD_ENCRYPTION_KEYS: `v1:${Buffer.alloc(32, 1).toString('base64')}`,
   POSTGRES_USER: 'u',
   POSTGRES_PASSWORD: 'p',
@@ -31,6 +32,12 @@ describe('validateEnv', () => {
   it('rejects a malformed encryption keyring without echoing key material', () => {
     expect(() => validateEnv({ ...required, FIELD_ENCRYPTION_KEYS: 'v1:dG9vLXNob3J0' })).toThrow(
       /must be 32 bytes/,
+    );
+  });
+
+  it('requires a JWT secret of at least 32 characters', () => {
+    expect(() => validateEnv({ ...required, JWT_ACCESS_SECRET: 'short' })).toThrow(
+      /at least 32 characters/,
     );
   });
 

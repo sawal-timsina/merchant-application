@@ -2,12 +2,14 @@ import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { ApiTags } from '@nestjs/swagger';
 import type { DataSource } from 'typeorm';
+import { Public } from '../../modules/identity/presentation/public.decorator';
 
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
+  @Public()
   @Get()
   async check(): Promise<{ status: 'ok'; database: 'up' }> {
     try {
