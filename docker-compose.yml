@@ -32,6 +32,27 @@ services:
       timeout: 3s
       retries: 10
 
+  # Optional audit store (AUDIT_STORE=mongo). The init script creates an insert/find-only app user.
+  mongo:
+    # 7.0: MongoDB 8.x/9.x refuse to start on Linux kernels >= 6.19 (SERVER-121912).
+    image: docker.io/library/mongo:7.0
+    # Explicit: the append-only guarantee depends on authorization actually being enforced.
+    command: ['mongod', '--auth']
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+    ports:
+      - '${MONGO_PORT:-27017}:27017'
+    volumes:
+      - mongodata:/data/db
+      - ./infra/mongo/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand("ping").ok']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   # Full stack in containers: `docker compose --profile app up -d --build`
   migrate:
     profiles: [app]
@@ -84,4 +105,5 @@ services:
 
 volumes:
   pgdata:
+  mongodata:
   redisdata:

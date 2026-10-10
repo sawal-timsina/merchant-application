@@ -53,6 +53,15 @@ describe('validateEnv', () => {
     );
   });
 
+  it('requires MONGO_URI only when audit is stored in Mongo', () => {
+    expect(validateEnv(required).AUDIT_STORE).toBe('postgres');
+    expect(() => validateEnv({ ...required, AUDIT_STORE: 'mongo' })).toThrow(/MONGO_URI/);
+    expect(
+      validateEnv({ ...required, AUDIT_STORE: 'mongo', MONGO_URI: 'mongodb://localhost/x' })
+        .AUDIT_STORE,
+    ).toBe('mongo');
+  });
+
   it('requires database credentials', () => {
     expect(() => validateEnv({})).toThrow(/POSTGRES_PASSWORD/);
   });

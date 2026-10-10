@@ -34,6 +34,17 @@ module.exports = {
       testMatch: ['<rootDir>/test/**/*.integration-spec.ts'],
       setupFiles: ['<rootDir>/test/setup-env.ts'],
       globalSetup: '<rootDir>/test/global-setup.ts',
+      testPathIgnorePatterns: ['/node_modules/', 'audit-mongo-'],
+      transform,
+    },
+    {
+      // The audit specs again, against the MongoDB audit store (AUDIT_STORE=mongo).
+      displayName: 'integration-mongo',
+      testEnvironment: 'node',
+      rootDir: '.',
+      testMatch: ['<rootDir>/test/integration/audit*.integration-spec.ts'],
+      setupFiles: ['<rootDir>/test/setup-env-mongo.ts'],
+      globalSetup: '<rootDir>/test/global-setup.ts',
       transform,
     },
   ],
