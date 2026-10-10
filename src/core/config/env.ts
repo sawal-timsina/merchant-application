@@ -33,6 +33,10 @@ export const envSchema = z.object({
   /** Worker timers (outbox relay, reaper). Tests disable them and drive the jobs explicitly. */
   SCHEDULER_ENABLED: z.stringbool().default(true),
 
+  /** Simulated KYB provider: mean latency and probability of a transient failure per call. */
+  KYB_LATENCY_MS: z.coerce.number().int().min(0).default(300),
+  KYB_FAILURE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+
   /** Only read by `pnpm db:seed`; never needed at runtime. */
   SEED_USER_PASSWORD: z.string().min(12).optional(),
 
