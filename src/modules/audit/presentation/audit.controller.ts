@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 import type { Repository } from 'typeorm';
+import { ApiErrors } from '../../../core/http/error.response';
 import { type Page, PageQueryDto } from '../../../core/http/pagination';
 import { UserRole } from '../../identity/domain/user-role';
 import { Roles } from '../../identity/presentation/roles.decorator';
@@ -16,6 +17,7 @@ class AuditQueryDto extends PageQueryDto {
 
 @ApiTags('audit')
 @ApiBearerAuth()
+@ApiErrors(400, 401, 403)
 @Roles(UserRole.ADMIN)
 @Controller('audit')
 export class AuditController {

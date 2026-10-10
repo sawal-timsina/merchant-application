@@ -16,6 +16,7 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiErrors } from '../../../core/http/error.response';
 import type { Page } from '../../../core/http/pagination';
 import type { Actor } from '../../identity/domain/actor';
 import { UserRole } from '../../identity/domain/user-role';
@@ -34,6 +35,7 @@ import { ApplicationResponse, toApplicationResponse } from './application.respon
 
 @ApiTags('applications')
 @ApiBearerAuth()
+@ApiErrors(400, 401, 403, 404)
 @Controller('applications')
 export class ApplicationsController {
   constructor(
@@ -43,6 +45,7 @@ export class ApplicationsController {
 
   @Post()
   @Roles(UserRole.SALES, UserRole.ADMIN)
+  @ApiErrors(422)
   @ApiCreatedResponse({ type: ApplicationResponse })
   async create(
     @CurrentActor() actor: Actor,
@@ -70,6 +73,7 @@ export class ApplicationsController {
   }
 
   @Patch(':id')
+  @ApiErrors(409, 422)
   @Roles(UserRole.SALES, UserRole.ADMIN)
   @ApiOkResponse({ type: ApplicationResponse })
   async update(
@@ -81,6 +85,7 @@ export class ApplicationsController {
   }
 
   @Post(':id/assign')
+  @ApiErrors(409, 422)
   @HttpCode(200)
   @Roles(UserRole.ADMIN)
   @ApiOkResponse({ type: ApplicationResponse })
@@ -93,6 +98,7 @@ export class ApplicationsController {
   }
 
   @Post(':id/submit')
+  @ApiErrors(409, 422)
   @HttpCode(200)
   @Roles(UserRole.SALES, UserRole.ADMIN)
   @ApiOkResponse({ type: ApplicationResponse })
@@ -104,6 +110,7 @@ export class ApplicationsController {
   }
 
   @Post(':id/risk-review/retry')
+  @ApiErrors(409)
   @HttpCode(202)
   @Roles(UserRole.ADMIN)
   @ApiAcceptedResponse({ type: ApplicationResponse })
@@ -119,6 +126,7 @@ export class ApplicationsController {
    * decide who may record a decision.
    */
   @Post(':id/decision')
+  @ApiErrors(409, 422)
   @HttpCode(200)
   @ApiOkResponse({ type: ApplicationResponse })
   async decide(

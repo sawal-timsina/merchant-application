@@ -14,6 +14,9 @@ export function configureApp(app: INestApplication): INestApplication {
     app,
     new DocumentBuilder()
       .setTitle('Merchant Application API')
+      .setDescription(
+        'Merchant onboarding: application lifecycle, asynchronous risk/KYB review, role- and object-level authorization, audit trail. Every error uses the ErrorResponse shape.',
+      )
       .setVersion('0.1.0')
       .addBearerAuth()
       .build(),

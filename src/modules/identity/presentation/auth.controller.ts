@@ -1,8 +1,9 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { ApiErrors } from '../../../core/http/error.response';
 import { AuthService } from '../application/auth.service';
 import type { Actor } from '../domain/actor';
 import { User } from '../infrastructure/persistence/user.entity';
@@ -14,6 +15,7 @@ import { Public } from './public.decorator';
 const LOGIN_LIMIT = Number(process.env.LOGIN_THROTTLE_LIMIT ?? 10);
 
 @ApiTags('auth')
+@ApiErrors(400, 401)
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -26,7 +28,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @ApiOkResponse({ type: TokenPairResponse })
-  @ApiUnauthorizedResponse()
+  @ApiErrors(429)
   login(@Body() dto: LoginDto): Promise<TokenPairResponse> {
     return this.auth.login(dto.email, dto.password);
   }
@@ -35,7 +37,6 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(200)
   @ApiOkResponse({ type: TokenPairResponse })
-  @ApiUnauthorizedResponse()
   refresh(@Body() dto: RefreshDto): Promise<TokenPairResponse> {
     return this.auth.refresh(dto.refreshToken);
   }
