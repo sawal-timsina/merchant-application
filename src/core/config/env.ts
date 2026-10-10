@@ -13,6 +13,9 @@ export const envSchema = z.object({
   POSTGRES_DB: z.string().min(1),
   DB_LOGGING: z.stringbool().default(false),
 
+  /** Only read by `pnpm db:seed`; never needed at runtime. */
+  SEED_USER_PASSWORD: z.string().min(12).optional(),
+
   /** `keyId:base64(32 bytes)` pairs, active first. Generate with: openssl rand -base64 32 */
   FIELD_ENCRYPTION_KEYS: z.string().superRefine((value, ctx) => {
     try {
