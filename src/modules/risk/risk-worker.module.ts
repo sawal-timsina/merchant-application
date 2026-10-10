@@ -6,6 +6,7 @@ import { OutboxRelay } from '../../core/outbox/outbox-relay';
 import { AuditModule } from '../audit/audit.module';
 import { MarkRiskReviewFailedUseCase } from './application/mark-risk-review-failed.use-case';
 import { ProcessRiskReviewUseCase } from './application/process-risk-review.use-case';
+import { RiskReviewReaper } from './application/risk-review-reaper';
 import { KYB_PROVIDER } from './domain/kyb-provider';
 import { FakeKybProvider } from './infrastructure/providers/fake-kyb.provider';
 import { RiskReviewProcessor } from './infrastructure/queue/risk-review.processor';
@@ -22,6 +23,7 @@ import { RiskModule } from './risk.module';
     ProcessRiskReviewUseCase,
     MarkRiskReviewFailedUseCase,
     RiskReviewProcessor,
+    RiskReviewReaper,
     {
       provide: KYB_PROVIDER,
       inject: [ConfigService],
