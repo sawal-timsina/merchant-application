@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  IsUUID,
   Length,
   Matches,
   Max,
@@ -72,4 +73,8 @@ export class ListApplicationsQueryDto extends PageQueryDto {
   @IsOptional()
   @IsEnum(ApplicationStatus)
   status?: ApplicationStatus;
+}
+
+export class AssignReviewerDto {
+  @ApiProperty() @IsUUID() reviewerId!: string;
 }
