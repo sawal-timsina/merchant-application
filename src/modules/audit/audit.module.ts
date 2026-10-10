@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditService } from './application/audit.service';
 import { AuditLog } from './infrastructure/persistence/audit-log.entity';
+import { AuditController } from './presentation/audit.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([AuditLog])],
+  controllers: [AuditController],
   providers: [AuditService],
   exports: [TypeOrmModule, AuditService],
 })
