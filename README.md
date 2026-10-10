@@ -177,12 +177,51 @@ resource the caller may not act on returns `403`. See
 | `owner_email`, `owner_phone`                 | PII            | masked in audit metadata and logs; **candidates for field-level encryption** (needs a blind index to stay searchable) |
 | bank / settlement details (not modelled yet) | sensitive      | would require field-level encryption                                                                                  |
 | `audit_logs.metadata`                        | internal       | redacted before insert; table is append-only (trigger blocks UPDATE/DELETE/TRUNCATE)                                  |
+| Mongo `audit_logs` collection (optional)     | internal       | same redacted entries; app user may only insert and read (`--auth` + custom role)                                     |
+| `webhook_events.payload`                     | provider data  | KYB outcome flags and references only; no PII                                                                         |
 
 Also: login rate limiting and equalized timing for unknown emails, a global JWT guard (routes
 are private unless marked public), users reloaded on every request so deactivation is
 immediate, request logs redact `authorization`, cookies, passwords, refresh tokens and tax ids,
 errors never leak internals, and no secrets are committed (`.env.example` holds placeholders).
 See [adr/0005](adr/0005-field-level-encryption.md).
+
+## Optional enhancements
+
+### KYB callback via signed webhook
+
+Set `KYB_MODE=callback`. The worker sends the verification request and parks the assessment as
+`AWAITING_CALLBACK`; the provider later calls `POST /webhooks/kyb`. In development the simulated
+provider delivers that callback itself, signed with the first `KYB_WEBHOOK_SECRETS` entry.
+
+```
+X-Kyb-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<raw body>">
+```
+
+Signatures are checked on the raw body before validation, with a 5-minute replay window and
+secret rotation. Each provider `eventId` is processed once (`webhook_events` unique key); unknown
+or superseded references are acknowledged and ignored; a callback that never arrives is failed by
+the reaper after `KYB_CALLBACK_TIMEOUT_MS`. Sign a test call:
+
+```bash
+BODY='{"eventId":"evt_1","type":"kyb.verification.completed","reference":"<ref>","data":{"businessVerified":true,"watchlistHit":false},"occurredAt":"2026-10-10T00:00:00Z"}'
+SIG=$(node -e 'const c=require("crypto");const t=Math.floor(Date.now()/1000);process.stdout.write(`t=${t},v1=`+c.createHmac("sha256",process.argv[1]).update(`${t}.`+process.argv[2]).digest("hex"))' "$KYB_SECRET" "$BODY")
+curl -s localhost:3000/webhooks/kyb -H 'content-type: application/json' -H "x-kyb-signature: $SIG" -d "$BODY"
+```
+
+See [adr/0006](adr/0006-signed-kyb-webhooks.md).
+
+### MongoDB audit store
+
+```bash
+docker compose up -d mongo     # creates the insert/find-only audit_app user
+# .env: AUDIT_STORE=mongo, MONGO_APP_PASSWORD=..., MONGO_URI=mongodb://audit_app:...@localhost:27017/merchant?authSource=merchant
+```
+
+Audit entries still commit with their action (they ride the outbox) and are projected into Mongo
+exactly once by the worker; `GET /audit` and `GET /audit/stats/decisions` read from whichever
+store is configured. Compose pins `mongo:7.0` because MongoDB 8.x/9.x refuse to start on Linux
+kernels 6.19 and newer. See [adr/0007](adr/0007-mongodb-audit-store.md).
 
 ## API overview
 
@@ -200,6 +239,8 @@ See [adr/0005](adr/0005-field-level-encryption.md).
 | POST   | `/applications/:id/decision`            | approve / reject / request info            |
 | POST   | `/applications/:id/risk-review/retry`   | retry a failed risk review (ADMIN)         |
 | GET    | `/audit?entityType=&entityId=&action=`  | audit trail (ADMIN)                        |
+| GET    | `/audit/stats/decisions?from=&to=`      | decisions per reviewer per day (ADMIN)     |
+| POST   | `/webhooks/kyb`                         | signed KYB callback (callback mode)        |
 | GET    | `/health`                               | liveness + database check                  |
 
 Every error has the shape `{ statusCode, error, message, details?, requestId }`; the
@@ -207,11 +248,12 @@ Every error has the shape `{ statusCode, error, message, details?, requestId }`;
 
 ## Testing
 
-| Script                  | Runs                                                                         |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `pnpm test:unit`        | `src/**/*.spec.ts`: pure logic, no I/O                                       |
-| `pnpm test:integration` | `test/**/*.integration-spec.ts`: Supertest against the real app and Postgres |
-| `pnpm test`             | both                                                                         |
+| Script                        | Runs                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `pnpm test:unit`              | `src/**/*.spec.ts`: pure logic, no I/O                                         |
+| `pnpm test:integration`       | `test/**/*.integration-spec.ts`: Supertest against the real app and Postgres   |
+| `pnpm test`                   | both                                                                           |
+| `pnpm test:integration:mongo` | the audit specs again, against the MongoDB audit store (needs `mongo` running) |
 
 Integration tests boot the real `AppModule` with the production HTTP pipeline
 (`test/utils/test-app.ts`) and send requests in-process with Supertest. They run against a
@@ -288,9 +330,8 @@ Each item: what was chosen over what, what it costs, and what production would d
 
 3. **Money as integer cents (`bigint`) over `numeric` or floats.** Exact and fast. Cost:
    three-decimal currencies would need a per-currency scale.
-4. **Audit in Postgres with an append-only trigger.** One store, transactional with the action
-   it records. A document store would be the next step for analytics-heavy audit use, kept
-   consistent through the same outbox.
+4. **Audit in Postgres with an append-only trigger, by default.** One store, transactional with
+   the action it records. MongoDB is available as an optional store (item 17).
 5. **Hand-reviewed migrations, one per change; `synchronize` never on.** Generated drafts missed
    extensions, shared enum types and triggers, which is why every migration is reviewed,
    reverted and drift-checked.
@@ -332,8 +373,21 @@ Each item: what was chosen over what, what it costs, and what production would d
 
 15. **Core first, end to end, before optional items.** Out of scope, with how each would fit:
     WebSockets (push status changes to the UI), MFA/SSO (identity module, new guards), row-level
-    security (multi-tenant isolation), PDF/CSV exports, a KYB webhook callback (the worker
-    already separates requesting a check from completing it), and a document-store audit log.
+    security (multi-tenant isolation), PDF/CSV exports.
+
+### Optional enhancements
+
+16. **KYB callback via signed webhook, with sync mode kept as the default.** Real KYB is
+    asynchronous; holding a job open or polling doesn't scale. Cost: a public endpoint, which needs
+    an HMAC signature with the timestamp inside the MAC, a replay window and event-id
+    deduplication. Receipt and processing share a transaction (simple, but slow processing would
+    delay the provider's 200). Unknown or stale events are acknowledged so the provider stops
+    retrying. ([adr/0006](adr/0006-signed-kyb-webhooks.md))
+17. **MongoDB audit store behind a port, chosen at boot, Postgres the default.** Mongo can't join
+    the Postgres transaction, so entries ride the outbox: atomic with the action and projected
+    idempotently, but the audit view lags by up to ~1 s. Append-only is enforced by a
+    least-privilege database role (with `--auth` set explicitly) instead of a trigger.
+    ([adr/0007](adr/0007-mongodb-audit-store.md))
 
 ## AI assistance
 
