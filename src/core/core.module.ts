@@ -9,6 +9,7 @@ import {
 } from './crypto/field-encryption.service';
 import { parseKeyring } from './crypto/keyring';
 import { OutboxModule } from './outbox/outbox.module';
+import { QueueModule } from './queue/queue.module';
 import { buildDataSourceOptions } from './database/typeorm.config';
 import { RequestContextMiddleware } from './request-context/request-context.middleware';
 import { resolveRequestId } from './request-context/request-id';
@@ -18,6 +19,7 @@ import { resolveRequestId } from './request-context/request-id';
 @Module({
   imports: [
     OutboxModule,
+    QueueModule,
     // .env is loaded by Node itself (--env-file-if-exists), so every entry point
     // (api, worker, migration CLI, tests) reads configuration the same way.
     ConfigModule.forRoot({

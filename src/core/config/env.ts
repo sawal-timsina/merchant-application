@@ -23,6 +23,16 @@ export const envSchema = z.object({
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(300),
   LOGIN_THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
 
+  REDIS_HOST: z.string().min(1).default('localhost'),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
+  REDIS_PASSWORD: z.string().optional(),
+  REDIS_DB: z.coerce.number().int().min(0).default(0),
+  QUEUE_PREFIX: z.string().min(1).default('merchant'),
+  RISK_JOB_ATTEMPTS: z.coerce.number().int().min(1).default(5),
+  RISK_JOB_BACKOFF_MS: z.coerce.number().int().min(1).default(2000),
+  /** Worker timers (outbox relay, reaper). Tests disable them and drive the jobs explicitly. */
+  SCHEDULER_ENABLED: z.stringbool().default(true),
+
   /** Only read by `pnpm db:seed`; never needed at runtime. */
   SEED_USER_PASSWORD: z.string().min(12).optional(),
 

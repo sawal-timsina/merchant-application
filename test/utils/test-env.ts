@@ -14,6 +14,13 @@ export function applyTestEnv(): void {
   // Tests send many requests from one IP; production limits are exercised by config, not here.
   process.env.THROTTLE_LIMIT = '100000';
   process.env.LOGIN_THROTTLE_LIMIT = '100000';
+  process.env.REDIS_DB = '1';
+  process.env.QUEUE_PREFIX = 'test';
+  process.env.RISK_JOB_ATTEMPTS = '3';
+  process.env.RISK_JOB_BACKOFF_MS = '10';
+  process.env.SCHEDULER_ENABLED = 'false'; // tests drive the relay and reaper explicitly
+  process.env.KYB_LATENCY_MS = '0';
+  process.env.KYB_FAILURE_RATE = '0';
   // Throwaway key per run; tests never depend on data encrypted by another process.
   process.env.FIELD_ENCRYPTION_KEYS ??= `test:${randomBytes(32).toString('base64')}`;
 }

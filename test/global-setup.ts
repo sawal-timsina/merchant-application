@@ -1,3 +1,4 @@
+import { Queue } from 'bullmq';
 import { applyTestEnv } from './utils/test-env';
 import { createTestDataSource } from './utils/test-data-source';
 
@@ -17,5 +18,20 @@ export default async function globalSetup(): Promise<void> {
     await dataSource.runMigrations({ transaction: 'each' });
   } finally {
     await dataSource.destroy();
+  }
+  await resetTestQueues();
+}
+
+/** Empties the test-prefixed queues in the test Redis DB so runs never see each other's jobs. */
+async function resetTestQueues(): Promise<void> {
+  const connection = {
+    host: process.env.REDIS_HOST ?? 'localhost',
+    port: Number(process.env.REDIS_PORT ?? 6379),
+    db: Number(process.env.REDIS_DB),
+  };
+  for (const name of ['risk-review', 'risk-review-dlq']) {
+    const queue = new Queue(name, { connection, prefix: process.env.QUEUE_PREFIX });
+    await queue.obliterate({ force: true });
+    await queue.close();
   }
 }

@@ -8,6 +8,8 @@
   },
   "rules": {
     "no-console": "error",
+    // Sequential awaits are deliberate: queries in one transaction share a single connection.
+    "no-await-in-loop": "off",
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-imports": "off",
     "import/no-cycle": "error",
