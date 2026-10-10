@@ -61,6 +61,42 @@ export class AuthService {
     });
   }
 
+  async refresh(rawToken: string): Promise<TokenPair> {
+    // Returning (not throwing) on reuse lets the family revocation commit before we answer 401.
+    const outcome = await this.dataSource.transaction(async (manager) => {
+      const rotation = await this.refreshTokens.rotate(manager, rawToken);
+      if (rotation.kind === 'reused') {
+        await this.audit.record(manager, {
+          action: AuditAction.AUTH_REFRESH_REUSE_DETECTED,
+          entityType: 'user',
+          entityId: rotation.userId,
+          actor: null,
+        });
+        return null;
+      }
+      if (rotation.kind === 'invalid') return null;
+
+      const user = await manager.findOne(User, {
+        where: { id: rotation.userId },
+        select: { id: true, role: true, isActive: true },
+      });
+      if (!user?.isActive) return null;
+
+      const next = await this.refreshTokens.issue(manager, user.id, rotation.familyId);
+      await this.refreshTokens.markRotated(manager, rotation.tokenId, next.id);
+      const { accessToken, expiresIn } = await this.signAccessToken(user);
+      return { accessToken, refreshToken: next.token, tokenType: 'Bearer' as const, expiresIn };
+    });
+    if (!outcome) throw new UnauthorizedException('Invalid refresh token');
+    return outcome;
+  }
+
+  async logout(rawToken: string): Promise<void> {
+    await this.dataSource.transaction((manager) =>
+      this.refreshTokens.revokeFamily(manager, rawToken),
+    );
+  }
+
   async issueTokens(
     manager: EntityManager,
     user: { id: string; role: UserRole },

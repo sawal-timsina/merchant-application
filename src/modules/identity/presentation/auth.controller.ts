@@ -6,7 +6,7 @@ import type { Repository } from 'typeorm';
 import { AuthService } from '../application/auth.service';
 import type { Actor } from '../domain/actor';
 import { User } from '../infrastructure/persistence/user.entity';
-import { LoginDto, MeResponse, TokenPairResponse } from './auth.dto';
+import { LoginDto, MeResponse, RefreshDto, TokenPairResponse } from './auth.dto';
 import { CurrentActor } from './current-actor.decorator';
 import { Public } from './public.decorator';
 
@@ -29,6 +29,22 @@ export class AuthController {
   @ApiUnauthorizedResponse()
   login(@Body() dto: LoginDto): Promise<TokenPairResponse> {
     return this.auth.login(dto.email, dto.password);
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(200)
+  @ApiOkResponse({ type: TokenPairResponse })
+  @ApiUnauthorizedResponse()
+  refresh(@Body() dto: RefreshDto): Promise<TokenPairResponse> {
+    return this.auth.refresh(dto.refreshToken);
+  }
+
+  @Public()
+  @Post('logout')
+  @HttpCode(204)
+  async logout(@Body() dto: RefreshDto): Promise<void> {
+    await this.auth.logout(dto.refreshToken);
   }
 
   @Get('me')

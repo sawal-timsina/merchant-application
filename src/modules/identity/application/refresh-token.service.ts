@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { EntityManager } from 'typeorm';
+import { type EntityManager, IsNull } from 'typeorm';
 import type { Env } from '../../../core/config/env';
 import { RefreshToken } from '../infrastructure/persistence/refresh-token.entity';
 
@@ -12,6 +12,11 @@ export interface IssuedRefreshToken {
   token: string;
   expiresAt: Date;
 }
+
+export type RotationResult =
+  | { kind: 'rotated'; userId: string; familyId: string; tokenId: string }
+  | { kind: 'invalid' }
+  | { kind: 'reused'; userId: string };
 
 @Injectable()
 export class RefreshTokenService {
@@ -33,5 +38,47 @@ export class RefreshTokenService {
       replacedById: null,
     });
     return { id: saved.id, token, expiresAt: saved.expiresAt };
+  }
+
+  /**
+   * Must run inside a transaction. The row lock serialises concurrent rotations of the same
+   * token: the loser sees it already rotated and is treated as a replay.
+   */
+  async rotate(manager: EntityManager, rawToken: string): Promise<RotationResult> {
+    const current = await manager.findOne(RefreshToken, {
+      where: { tokenHash: hashToken(rawToken) },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!current) return { kind: 'invalid' };
+    if (current.revokedAt) {
+      await this.revokeFamilyById(manager, current.familyId);
+      return { kind: 'reused', userId: current.userId };
+    }
+    if (current.expiresAt <= new Date()) return { kind: 'invalid' };
+    return {
+      kind: 'rotated',
+      userId: current.userId,
+      familyId: current.familyId,
+      tokenId: current.id,
+    };
+  }
+
+  async markRotated(manager: EntityManager, tokenId: string, replacedById: string): Promise<void> {
+    await manager.update(RefreshToken, { id: tokenId }, { revokedAt: new Date(), replacedById });
+  }
+
+  async revokeFamily(manager: EntityManager, rawToken: string): Promise<void> {
+    const token = await manager.findOne(RefreshToken, {
+      where: { tokenHash: hashToken(rawToken) },
+    });
+    if (token) await this.revokeFamilyById(manager, token.familyId);
+  }
+
+  private async revokeFamilyById(manager: EntityManager, familyId: string): Promise<void> {
+    await manager.update(
+      RefreshToken,
+      { familyId, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
   }
 }
