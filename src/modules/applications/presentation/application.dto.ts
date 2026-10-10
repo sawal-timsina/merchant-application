@@ -66,7 +66,11 @@ export class CreateApplicationDto {
   taxId?: string;
 }
 
-export class UpdateApplicationDto extends PartialType(CreateApplicationDto) {
+// skipNullProperties: false → an explicit null is validated (and rejected) rather than skipped,
+// so `{ "businessName": null }` is a 400 instead of reaching a NOT NULL column.
+export class UpdateApplicationDto extends PartialType(CreateApplicationDto, {
+  skipNullProperties: false,
+}) {
   @ApiProperty({ description: 'Version from the last read (optimistic locking)' })
   @IsInt()
   @Min(1)

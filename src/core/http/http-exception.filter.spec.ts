@@ -25,6 +25,7 @@ describe('toHttpError', () => {
     [pgError('23505'), 409, 'Conflicts with existing data'],
     [pgError('23514'), 422, 'Violates a data constraint'],
     [pgError('23503'), 422, 'Violates a data constraint'],
+    [pgError('23502'), 422, 'Violates a data constraint'],
   ])('maps %p to %i', (error, status, message) => {
     expect(toHttpError(error)).toMatchObject({ status, message });
   });

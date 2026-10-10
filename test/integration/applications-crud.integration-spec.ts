@@ -164,6 +164,15 @@ describe('Applications: create, read, list, update', () => {
       await patch(salesA, created.id, { businessName: 'Two', version: 1 }).expect(409);
     });
 
+    it.each(['businessName', 'currency', 'expectedMonthlyVolumeCents'])(
+      'rejects null for required field %s instead of failing with 500',
+      async (field) => {
+        const created = await createApplication(app, salesA);
+        const res = await patch(salesA, created.id, { [field]: null, version: created.version });
+        expect(res.status).toBe(400);
+      },
+    );
+
     it('requires the version field', async () => {
       const created = await createApplication(app, salesA);
       await patch(salesA, created.id, { businessName: 'X' }).expect(400);

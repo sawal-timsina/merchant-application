@@ -49,7 +49,8 @@ export function toHttpError(exception: unknown): {
   if (exception instanceof QueryFailedError) {
     const code = (exception.driverError as { code?: string }).code;
     if (code === '23505') return { status: 409, message: 'Conflicts with existing data' };
-    if (code === '23514' || code === '23503' || code === '22P02') {
+    // check, foreign key, not-null, invalid text representation
+    if (code === '23514' || code === '23503' || code === '23502' || code === '22P02') {
       return { status: 422, message: 'Violates a data constraint' };
     }
   }
