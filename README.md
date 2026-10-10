@@ -103,6 +103,9 @@ request handling. See [adr/0001](adr/0001-separate-worker-process.md).
 
 ### Request and job flow
 
+Detailed per-endpoint and per-worker sequence diagrams (guards, services, transactions,
+queues): [architecture/sequence-diagrams.md](architecture/sequence-diagrams.md).
+
 ```
 POST /applications/:id/submit
   └─ API: one PG transaction { application → SUBMITTED, submission_version + 1,
