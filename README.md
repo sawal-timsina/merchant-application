@@ -21,9 +21,10 @@ pnpm install
 cp .env.example .env
 # Choose local database credentials (Compose creates Postgres with them on first start):
 #   POSTGRES_USER=merchant  POSTGRES_PASSWORD=<anything>  POSTGRES_DB=merchant
-# Fill the three secrets (they are intentionally empty in the example):
+# Fill the secrets (they are intentionally empty in the example):
 #   JWT_ACCESS_SECRET=$(openssl rand -base64 48)
 #   FIELD_ENCRYPTION_KEYS=v1:$(openssl rand -base64 32)
+#   KYB_WEBHOOK_SECRETS=$(openssl rand -hex 32)
 #   SEED_USER_PASSWORD=<any local password, 12+ chars>
 docker compose up -d          # or: podman compose up -d   (Postgres + Redis)
 pnpm migration:run

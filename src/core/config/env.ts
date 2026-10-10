@@ -37,6 +37,22 @@ export const envSchema = z.object({
   KYB_LATENCY_MS: z.coerce.number().int().min(0).default(300),
   KYB_FAILURE_RATE: z.coerce.number().min(0).max(1).default(0.1),
 
+  /** Comma-separated HMAC secrets for KYB webhooks (first signs, all verify, for rotation). */
+  KYB_WEBHOOK_SECRETS: z
+    .string()
+    .transform((value) =>
+      value
+        .split(',')
+        .map((secret) => secret.trim())
+        .filter(Boolean),
+    )
+    .pipe(
+      z
+        .array(z.string().min(32, 'each KYB webhook secret must be at least 32 characters'))
+        .min(1, 'KYB_WEBHOOK_SECRETS must contain at least one secret'),
+    ),
+  KYB_WEBHOOK_TOLERANCE_SECONDS: z.coerce.number().int().positive().default(300),
+
   /** Only read by `pnpm db:seed`; never needed at runtime. */
   SEED_USER_PASSWORD: z.string().min(12).optional(),
 

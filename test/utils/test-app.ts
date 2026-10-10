@@ -20,7 +20,7 @@ export async function createTestApp(
     builder = builder.overrideProvider(token as never).useValue(value);
   }
   const moduleRef = await builder.compile();
-  const app = configureApp(moduleRef.createNestApplication({ logger: false }));
+  const app = configureApp(moduleRef.createNestApplication({ logger: false, rawBody: true }));
   await app.init();
   return app;
 }

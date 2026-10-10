@@ -1,6 +1,7 @@
 import { validateEnv } from './env';
 
 const required = {
+  KYB_WEBHOOK_SECRETS: 'k'.repeat(32),
   JWT_ACCESS_SECRET: 'x'.repeat(32),
   FIELD_ENCRYPTION_KEYS: `v1:${Buffer.alloc(32, 1).toString('base64')}`,
   POSTGRES_USER: 'u',
@@ -37,6 +38,17 @@ describe('validateEnv', () => {
 
   it('requires a JWT secret of at least 32 characters', () => {
     expect(() => validateEnv({ ...required, JWT_ACCESS_SECRET: 'short' })).toThrow(
+      /at least 32 characters/,
+    );
+  });
+
+  it('splits webhook secrets and enforces their length', () => {
+    const env = validateEnv({
+      ...required,
+      KYB_WEBHOOK_SECRETS: `${'a'.repeat(32)}, ${'b'.repeat(32)}`,
+    });
+    expect(env.KYB_WEBHOOK_SECRETS).toEqual(['a'.repeat(32), 'b'.repeat(32)]);
+    expect(() => validateEnv({ ...required, KYB_WEBHOOK_SECRETS: 'short' })).toThrow(
       /at least 32 characters/,
     );
   });
