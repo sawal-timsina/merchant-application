@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
@@ -9,6 +9,8 @@ import {
 } from './crypto/field-encryption.service';
 import { parseKeyring } from './crypto/keyring';
 import { buildDataSourceOptions } from './database/typeorm.config';
+import { RequestContextMiddleware } from './request-context/request-context.middleware';
+import { resolveRequestId } from './request-context/request-id';
 
 /** Cross-cutting infrastructure shared by the HTTP API and the worker process. */
 @Module({
@@ -25,6 +27,7 @@ import { buildDataSourceOptions } from './database/typeorm.config';
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => ({
         pinoHttp: {
+          genReqId: (req, res) => resolveRequestId(req, res),
           level: config.get('LOG_LEVEL', { infer: true }),
           // Never let credentials reach the logs.
           redact: {
@@ -65,4 +68,8 @@ import { buildDataSourceOptions } from './database/typeorm.config';
   ],
   exports: [FieldEncryptionService],
 })
-export class CoreModule {}
+export class CoreModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestContextMiddleware).forRoutes('{*splat}');
+  }
+}
