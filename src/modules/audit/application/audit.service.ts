@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { EntityManager } from 'typeorm';
 import { redact } from '../../../core/redaction/redact';
 import { RequestContext } from '../../../core/request-context/request-context';
-import type { UserRole } from '../../identity/domain/user-role';
 import type { AuditAction } from '../domain/audit-action';
-import { AuditLog } from '../infrastructure/persistence/audit-log.entity';
+import { AUDIT_WRITER, type AuditWriter } from '../domain/audit-record';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -17,17 +16,19 @@ export interface AuditEntry {
 }
 
 /**
- * Takes the caller's EntityManager so the audit row commits or rolls back together with the
- * action it describes.
+ * Takes the caller's EntityManager so the audit entry commits or rolls back together with the
+ * action it describes. Where the entry is stored is the writer adapter's concern.
  */
 @Injectable()
 export class AuditService {
+  constructor(@Inject(AUDIT_WRITER) private readonly writer: AuditWriter) {}
+
   async record(manager: EntityManager, entry: AuditEntry): Promise<void> {
     const context = RequestContext.get();
     const actor = entry.actor === undefined ? (context?.actor ?? null) : entry.actor;
-    const log = manager.create(AuditLog, {
+    await this.writer.write(manager, {
       actorId: actor?.id ?? null,
-      actorRole: (actor?.role as UserRole | undefined) ?? null,
+      actorRole: actor?.role ?? null,
       action: entry.action,
       entityType: entry.entityType,
       entityId: entry.entityId ?? null,
@@ -35,6 +36,5 @@ export class AuditService {
       requestId: entry.correlationId ?? context?.requestId ?? null,
       ip: context?.ip ?? null,
     });
-    await manager.save(log);
   }
 }

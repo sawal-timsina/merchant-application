@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import type { Env } from '../../core/config/env';
 import { WebhookEvent } from '../../core/webhooks/webhook-event.entity';
-import { AuditModule } from '../audit/audit.module';
 import { KybWebhookService } from './application/kyb-webhook.service';
 import { RiskAssessmentCompleter } from './application/risk-assessment-completer';
 import { RiskAssessment } from './infrastructure/persistence/risk-assessment.entity';
@@ -19,7 +18,6 @@ import { KybWebhookController } from './presentation/kyb-webhook.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([RiskAssessment, WebhookEvent]),
-    AuditModule,
     BullModule.registerQueueAsync({
       name: RISK_REVIEW_QUEUE,
       inject: [ConfigService],

@@ -1,9 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../core/config/env';
-import { OutboxPublisherRegistry } from '../../core/outbox/outbox-publisher.registry';
-import { OutboxRelay } from '../../core/outbox/outbox-relay';
-import { AuditModule } from '../audit/audit.module';
 import { MarkRiskReviewFailedUseCase } from './application/mark-risk-review-failed.use-case';
 import { ProcessRiskReviewUseCase } from './application/process-risk-review.use-case';
 import { RiskReviewReaper } from './application/risk-review-reaper';
@@ -13,12 +10,10 @@ import { RiskReviewProcessor } from './infrastructure/queue/risk-review.processo
 import { RiskReviewPublisher } from './infrastructure/queue/risk-review.publisher';
 import { RiskModule } from './risk.module';
 
-/** Worker-side risk processing: outbox relay, queue publisher, processor and use cases. */
+/** Worker-side risk processing: queue publisher, processor, use cases and the reaper. */
 @Module({
-  imports: [RiskModule, AuditModule],
+  imports: [RiskModule],
   providers: [
-    OutboxPublisherRegistry,
-    OutboxRelay,
     RiskReviewPublisher,
     ProcessRiskReviewUseCase,
     MarkRiskReviewFailedUseCase,
@@ -46,6 +41,6 @@ import { RiskModule } from './risk.module';
       useFactory: (config: ConfigService<Env, true>) => config.get('KYB_MODE', { infer: true }),
     },
   ],
-  exports: [OutboxRelay, OutboxPublisherRegistry, ProcessRiskReviewUseCase],
+  exports: [ProcessRiskReviewUseCase],
 })
 export class RiskWorkerModule {}

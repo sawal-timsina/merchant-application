@@ -8,7 +8,7 @@ import { RiskModule } from './modules/risk/risk.module';
 
 /** Composition root for the HTTP API. Enqueues background work; never processes it. */
 @Module({
-  imports: [CoreModule, IdentityModule, ApplicationsModule, RiskModule, AuditModule],
+  imports: [CoreModule, IdentityModule, ApplicationsModule, RiskModule, AuditModule.forRoot()],
   controllers: [HealthController],
 })
 export class AppModule {}

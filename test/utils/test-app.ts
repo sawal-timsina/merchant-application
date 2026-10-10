@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/app.setup';
-import { RiskWorkerModule } from '../../src/modules/risk/risk-worker.module';
+import { WorkerModule } from '../../src/worker.module';
 
 /**
  * Boots the real AppModule with the production HTTP pipeline (validation, Swagger, filters),
@@ -13,8 +13,8 @@ export async function createTestApp(
   options: { worker?: boolean; overrides?: Array<{ token: unknown; value: unknown }> } = {},
 ): Promise<INestApplication> {
   let builder = Test.createTestingModule({
-    // worker: also run the in-process worker pieces (outbox relay, queue processors).
-    imports: options.worker ? [AppModule, RiskWorkerModule] : [AppModule],
+    // worker: also run the worker's modules in-process (outbox relay, processors, reaper).
+    imports: options.worker ? [AppModule, WorkerModule] : [AppModule],
   });
   for (const { token, value } of options.overrides ?? []) {
     builder = builder.overrideProvider(token as never).useValue(value);
