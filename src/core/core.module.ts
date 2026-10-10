@@ -1,4 +1,4 @@
-import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { Global, type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
@@ -13,6 +13,7 @@ import { RequestContextMiddleware } from './request-context/request-context.midd
 import { resolveRequestId } from './request-context/request-id';
 
 /** Cross-cutting infrastructure shared by the HTTP API and the worker process. */
+@Global()
 @Module({
   imports: [
     // .env is loaded by Node itself (--env-file-if-exists), so every entry point
