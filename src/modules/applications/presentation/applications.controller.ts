@@ -9,7 +9,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiAcceptedResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Page } from '../../../core/http/pagination';
 import type { Actor } from '../../identity/domain/actor';
 import { UserRole } from '../../identity/domain/user-role';
@@ -94,5 +100,16 @@ export class ApplicationsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ApplicationResponse> {
     return toApplicationResponse(await this.workflow.submit(actor, id));
+  }
+
+  @Post(':id/risk-review/retry')
+  @HttpCode(202)
+  @Roles(UserRole.ADMIN)
+  @ApiAcceptedResponse({ type: ApplicationResponse })
+  async retryRisk(
+    @CurrentActor() actor: Actor,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ApplicationResponse> {
+    return toApplicationResponse(await this.workflow.retryRisk(actor, id));
   }
 }

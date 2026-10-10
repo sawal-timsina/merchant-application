@@ -8,6 +8,8 @@ import type { Actor } from '../../identity/domain/actor';
 import { UserRole } from '../../identity/domain/user-role';
 import { User } from '../../identity/infrastructure/persistence/user.entity';
 import { RiskEvent, type RiskReviewRequestedPayload } from '../../risk/domain/risk-events';
+import { RiskAssessmentStatus } from '../../risk/domain/risk.enums';
+import { RiskAssessment } from '../../risk/infrastructure/persistence/risk-assessment.entity';
 import { RiskStatus } from '../domain/application.enums';
 import { ApplicationEvent, isAssignable, nextStatus } from '../domain/application-state-machine';
 import { MerchantApplication } from '../infrastructure/persistence/merchant-application.entity';
@@ -75,6 +77,37 @@ export class ApplicationWorkflowService {
         entityType: ENTITY_TYPE,
         entityId: id,
         metadata: { submissionVersion },
+      });
+      return manager.findOneByOrFail(MerchantApplication, { id });
+    });
+  }
+
+  async retryRisk(actor: Actor, id: string): Promise<MerchantApplication> {
+    return this.dataSource.transaction(async (manager) => {
+      const application = await this.applications.findVisibleOrFail(manager, actor, id, true);
+      this.applications.assertCan(actor, 'retryRisk', application);
+      if (application.riskStatus !== RiskStatus.FAILED) {
+        throw new InvalidStateError(
+          `Risk review can only be retried when FAILED (is ${application.riskStatus})`,
+        );
+      }
+      await manager.update(MerchantApplication, { id }, { riskStatus: RiskStatus.PENDING });
+      await manager.update(
+        RiskAssessment,
+        { applicationId: id, submissionVersion: application.submissionVersion },
+        { status: RiskAssessmentStatus.PENDING, lastError: null },
+      );
+      await this.outbox.enqueue(manager, {
+        aggregateType: ENTITY_TYPE,
+        aggregateId: id,
+        eventType: RiskEvent.REVIEW_RETRY_REQUESTED,
+        payload: { applicationId: id, submissionVersion: application.submissionVersion },
+      });
+      await this.audit.record(manager, {
+        action: AuditAction.RISK_REVIEW_RETRIED,
+        entityType: ENTITY_TYPE,
+        entityId: id,
+        metadata: { submissionVersion: application.submissionVersion },
       });
       return manager.findOneByOrFail(MerchantApplication, { id });
     });
