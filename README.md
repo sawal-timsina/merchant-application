@@ -125,34 +125,21 @@ Conventions: snake_case names, readable constraint names (`pk_users`,
 `fk_merchant_applications_created_by_id`, `idx_…`, `chk_…`), money as `bigint` cents,
 `timestamptz` everywhere, `audit_logs` append-only (enforced by a trigger).
 
-
 # The trade-offs (README section content)
 
 These are written as "chose X over Y, the cost, and what production would do". They're the decisions made so far, and the questions reviewers are most likely to probe:
 
 Architecture
+
 1. Single package with two processes (API and worker) over a monorepo or microservices. One build and no version skew between the job producer and consumer. The cost is that module boundaries are enforced by convention, not by the build. The next step would be apps/worker with shared packages once separate release cycles are needed.
 2. Pragmatic DDD: TypeORM entities double as the domain model. Business rules (state machine, policies, scoring) are framework-free and unit-tested, without a mapper layer. The cost is that the domain model is shaped by the ORM. You'd introduce aggregates and mappers if the domain grows richer behaviour.
 
-Data
-3. Integer cents as bigint over numeric or floats. Exact and fast. The cost is that currencies with three decimal places need a per-currency scale.
-4. Postgres for audit, with an append-only trigger. One store, transactional with the action. Mongo is the optional alternative through the outbox.
-5. A hand-reviewed migration per change, never synchronize. Generated drafts missed extensions, shared enums and triggers.
+Data 3. Integer cents as bigint over numeric or floats. Exact and fast. The cost is that currencies with three decimal places need a per-currency scale. 4. Postgres for audit, with an append-only trigger. One store, transactional with the action. Mongo is the optional alternative through the outbox. 5. A hand-reviewed migration per change, never synchronize. Generated drafts missed extensions, shared enums and triggers.
 
-Async and reliability
-6. Transactional outbox over enqueueing after commit. No lost jobs when the process crashes between commit and enqueue. The cost is up to about 1 s extra latency and a polling relay. In production you'd use LISTEN/NOTIFY or CDC.
-7. Idempotency in three layers: deterministic job ID, a unique (application, submission) row, and a locked re-check. Costs a little complexity, but gives exactly-once effects on top of BullMQ's at-least-once delivery.
-8. Network calls outside DB transactions (two-phase processing). No locks held while waiting on the provider. The cost is a re-check step afterwards.
-9. Risk results are eventually consistent. After submitting, the client sees SUBMITTED/PENDING until the worker finishes.
+Async and reliability 6. Transactional outbox over enqueueing after commit. No lost jobs when the process crashes between commit and enqueue. The cost is up to about 1 s extra latency and a polling relay. In production you'd use LISTEN/NOTIFY or CDC. 7. Idempotency in three layers: deterministic job ID, a unique (application, submission) row, and a locked re-check. Costs a little complexity, but gives exactly-once effects on top of BullMQ's at-least-once delivery. 8. Network calls outside DB transactions (two-phase processing). No locks held while waiting on the provider. The cost is a re-check step afterwards. 9. Risk results are eventually consistent. After submitting, the client sees SUBMITTED/PENDING until the worker finishes.
 
-Security
-10. 404 (not 403) for resources outside your scope. Doesn't reveal which IDs exist. The cost is that debugging is slightly less obvious.
-11. ADMIN can't record decisions. Follows the brief's wording, "only the assigned REVIEWER", and keeps decision and assignment powers separate.
-12. HS256 JWT plus rotating refresh tokens with strict reuse detection. Simple for one service. The cost is that a double refresh logs the user out. Multi-service setups would use RS256/JWKS and maybe a short reuse grace period.
-13. Application-level AES-GCM for the tax ID, with the key from env. In production you'd use KMS envelope encryption. Email and phone are masked but not encrypted, because encrypting them would require a blind index to keep searching by them possible.
+Security 10. 404 (not 403) for resources outside your scope. Doesn't reveal which IDs exist. The cost is that debugging is slightly less obvious. 11. ADMIN can't record decisions. Follows the brief's wording, "only the assigned REVIEWER", and keeps decision and assignment powers separate. 12. HS256 JWT plus rotating refresh tokens with strict reuse detection. Simple for one service. The cost is that a double refresh logs the user out. Multi-service setups would use RS256/JWKS and maybe a short reuse grace period. 13. Application-level AES-GCM for the tax ID, with the key from env. In production you'd use KMS envelope encryption. Email and phone are masked but not encrypted, because encrypting them would require a blind index to keep searching by them possible.
 
-Testing
-14. Integration tests against real Postgres and Redis (Compose) over mocks or Testcontainers. High confidence and fast locally. The cost is that infrastructure must be running.
+Testing 14. Integration tests against real Postgres and Redis (Compose) over mocks or Testcontainers. High confidence and fast locally. The cost is that infrastructure must be running.
 
-Scope (prioritization)
-15. Built the core end to end before the optional items. Webhook and Mongo are Part 2. WebSockets, MFA/SSO and row-level security are deliberately out of scope, with a note on how each would fit.
+Scope (prioritization) 15. Built the core end to end before the optional items. Webhook and Mongo are Part 2. WebSockets, MFA/SSO and row-level security are deliberately out of scope, with a note on how each would fit.
