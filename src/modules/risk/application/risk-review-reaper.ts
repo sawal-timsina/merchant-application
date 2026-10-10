@@ -1,13 +1,17 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import type { Queue } from 'bullmq';
 import { DataSource, IsNull, LessThan } from 'typeorm';
+import type { Env } from '../../../core/config/env';
 import { OutboxEvent } from '../../../core/outbox/outbox-event.entity';
 import { OutboxService } from '../../../core/outbox/outbox.service';
 import { ApplicationStatus, RiskStatus } from '../../applications/domain/application.enums';
 import { MerchantApplication } from '../../applications/infrastructure/persistence/merchant-application.entity';
 import { RiskEvent } from '../domain/risk-events';
+import { RiskAssessmentStatus } from '../domain/risk.enums';
+import { RiskAssessment } from '../infrastructure/persistence/risk-assessment.entity';
 import {
   RISK_REVIEW_QUEUE,
   type RiskReviewJobData,
@@ -30,6 +34,7 @@ export class RiskReviewReaper {
     private readonly outbox: OutboxService,
     private readonly markFailed: MarkRiskReviewFailedUseCase,
     @InjectQueue(RISK_REVIEW_QUEUE) private readonly queue: Queue<RiskReviewJobData>,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   @Cron('*/5 * * * *', { name: 'risk-review-reaper' })
@@ -81,6 +86,27 @@ export class RiskReviewReaper {
         await this.markFailed.execute(data, job.failedReason ?? 'Retries exhausted');
         failed++;
       }
+    }
+
+    // Callback mode: the provider accepted the request but never reported back.
+    const timeoutMs = this.config.get('KYB_CALLBACK_TIMEOUT_MS', { infer: true });
+    const overdue = await this.dataSource.getRepository(RiskAssessment).find({
+      where: {
+        status: RiskAssessmentStatus.AWAITING_CALLBACK,
+        updatedAt: LessThan(new Date(Date.now() - timeoutMs)),
+      },
+      take: 100,
+    });
+    for (const assessment of overdue) {
+      await this.markFailed.execute(
+        {
+          applicationId: assessment.applicationId,
+          submissionVersion: assessment.submissionVersion,
+          correlationId: null,
+        },
+        'KYB callback not received before timeout',
+      );
+      failed++;
     }
     return { requeued, failed };
   }

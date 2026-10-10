@@ -53,6 +53,12 @@ export const envSchema = z.object({
     ),
   KYB_WEBHOOK_TOLERANCE_SECONDS: z.coerce.number().int().positive().default(300),
 
+  KYB_MODE: z.enum(['sync', 'callback']).default('sync'),
+  /** Callback mode: fail the review if the provider has not called back within this window. */
+  KYB_CALLBACK_TIMEOUT_MS: z.coerce.number().int().positive().default(1_800_000),
+  /** Where the simulated provider delivers callbacks (dev only). */
+  KYB_WEBHOOK_URL: z.url().default('http://localhost:3000/webhooks/kyb'),
+
   /** Only read by `pnpm db:seed`; never needed at runtime. */
   SEED_USER_PASSWORD: z.string().min(12).optional(),
 

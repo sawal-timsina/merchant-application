@@ -3,13 +3,23 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import type { Env } from '../../core/config/env';
+import { WebhookEvent } from '../../core/webhooks/webhook-event.entity';
+import { AuditModule } from '../audit/audit.module';
+import { KybWebhookService } from './application/kyb-webhook.service';
+import { RiskAssessmentCompleter } from './application/risk-assessment-completer';
 import { RiskAssessment } from './infrastructure/persistence/risk-assessment.entity';
 import { RISK_REVIEW_DLQ, RISK_REVIEW_QUEUE } from './infrastructure/queue/risk-queue';
+import { KybSignatureGuard } from './presentation/kyb-signature.guard';
+import { KybWebhookController } from './presentation/kyb-webhook.controller';
 
-/** API-side: registers the queues (for producers and inspection). Processing lives in RiskWorkerModule. */
+/**
+ * API-side risk module: registers the queues (for producers and inspection) and receives KYB
+ * callbacks. Job processing lives in RiskWorkerModule.
+ */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([RiskAssessment]),
+    TypeOrmModule.forFeature([RiskAssessment, WebhookEvent]),
+    AuditModule,
     BullModule.registerQueueAsync({
       name: RISK_REVIEW_QUEUE,
       inject: [ConfigService],
@@ -27,6 +37,8 @@ import { RISK_REVIEW_DLQ, RISK_REVIEW_QUEUE } from './infrastructure/queue/risk-
     }),
     BullModule.registerQueue({ name: RISK_REVIEW_DLQ }),
   ],
-  exports: [TypeOrmModule, BullModule],
+  controllers: [KybWebhookController],
+  providers: [RiskAssessmentCompleter, KybWebhookService, KybSignatureGuard],
+  exports: [TypeOrmModule, BullModule, RiskAssessmentCompleter],
 })
 export class RiskModule {}

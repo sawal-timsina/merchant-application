@@ -9,6 +9,7 @@ import { CreateAuditLogs1791561180174 } from './1791561180174-CreateAuditLogs';
 import { CreateRefreshTokens1791564464566 } from './1791564464566-CreateRefreshTokens';
 import { CreateOutboxEvents1791564464567 } from './1791564464567-CreateOutboxEvents';
 import { AddTaxIdToMerchantApplications1791564464568 } from './1791564464568-AddTaxIdToMerchantApplications';
+import { AddKybCallbackSupport1791700000000 } from './1791700000000-AddKybCallbackSupport';
 
 export const migrations = [
   CreateUsers1791561180170,
@@ -19,4 +20,5 @@ export const migrations = [
   CreateRefreshTokens1791564464566,
   CreateOutboxEvents1791564464567,
   AddTaxIdToMerchantApplications1791564464568,
+  AddKybCallbackSupport1791700000000,
 ];

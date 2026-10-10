@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -19,6 +20,7 @@ import { RiskAssessmentStatus, RiskLevel } from '../../domain/risk.enums';
  */
 @Entity('risk_assessments')
 @Unique(['applicationId', 'submissionVersion'])
+@Index(['providerReference'])
 @Check('chk_risk_assessments_score_range', `"score" BETWEEN 0 AND 100`)
 export class RiskAssessment {
   @PrimaryGeneratedColumn('uuid')
