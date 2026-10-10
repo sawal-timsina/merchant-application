@@ -33,7 +33,19 @@ export interface AuditQuery {
   pageSize: number;
 }
 
+/** Review decisions recorded by one reviewer on one UTC day. */
+export interface DecisionStatsRow {
+  day: string; // YYYY-MM-DD, UTC
+  reviewerId: string;
+  approved: number;
+  rejected: number;
+  infoRequested: number;
+  total: number;
+}
+
 export const AUDIT_READER = Symbol('AUDIT_READER');
 export interface AuditReader {
   find(query: AuditQuery): Promise<Page<AuditRecord>>;
+  /** Ordered by day, then reviewer. `to` is exclusive. */
+  decisionStats(range: { from: Date; to: Date }): Promise<DecisionStatsRow[]>;
 }
