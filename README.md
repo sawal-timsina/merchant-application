@@ -93,8 +93,10 @@ Node 24's `require(esm)`. Jest only enables that path when Node runs with
 Integration tests boot the real `AppModule` with the production HTTP pipeline
 (`test/utils/test-app.ts`) and send requests in-process with Supertest. They run against a
 separate `merchant_test` database that is rebuilt from the migrations at the start of every
-run. Tests isolate themselves with unique data (e.g. random emails) rather than truncating
-tables, because `audit_logs` is append-only even in tests.
+run, and a dedicated Redis DB that is flushed at the same time. Tests isolate themselves with
+unique data (e.g. random emails) rather than truncating tables, because `audit_logs` is
+append-only even in tests. Test files run one at a time: they share the outbox table and the
+queues, and suites that start an in-process worker would otherwise process each other's jobs.
 
 ## Database & migrations
 

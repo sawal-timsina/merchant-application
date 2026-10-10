@@ -15,6 +15,10 @@ const transform = {
 
 /** @type {import('jest').Config} */
 module.exports = {
+  // Integration suites share one database, one outbox table and one Redis DB, and some start an
+  // in-process worker that would consume other files' jobs. Running files serially keeps them
+  // isolated; the whole suite still takes seconds.
+  maxWorkers: 1,
   projects: [
     {
       displayName: 'unit',

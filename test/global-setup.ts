@@ -1,4 +1,4 @@
-import { Queue } from 'bullmq';
+import Redis from 'ioredis';
 import { applyTestEnv } from './utils/test-env';
 import { createTestDataSource } from './utils/test-data-source';
 
@@ -22,16 +22,19 @@ export default async function globalSetup(): Promise<void> {
   await resetTestQueues();
 }
 
-/** Empties the test-prefixed queues in the test Redis DB so runs never see each other's jobs. */
+/** Wipes the test Redis DB so a run never sees jobs left over from a previous one. */
 async function resetTestQueues(): Promise<void> {
-  const connection = {
+  const redis = new Redis({
     host: process.env.REDIS_HOST ?? 'localhost',
     port: Number(process.env.REDIS_PORT ?? 6379),
     db: Number(process.env.REDIS_DB),
-  };
-  for (const name of ['risk-review', 'risk-review-dlq']) {
-    const queue = new Queue(name, { connection, prefix: process.env.QUEUE_PREFIX });
-    await queue.obliterate({ force: true });
-    await queue.close();
+    lazyConnect: true,
+  });
+  try {
+    await redis.connect();
+    if (Number(process.env.REDIS_DB) === 0) throw new Error('Refusing to flush Redis DB 0');
+    await redis.flushdb();
+  } finally {
+    redis.disconnect();
   }
 }
