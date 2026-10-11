@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import {
   Column,
   CreateDateColumn,
@@ -16,6 +17,7 @@ export class User {
   email!: string;
 
   /** argon2id hash. Excluded from default selects so it never leaks into responses by accident. */
+  @Exclude()
   @Column({ type: 'text', select: false })
   passwordHash!: string;
 

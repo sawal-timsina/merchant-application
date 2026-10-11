@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import {
   Check,
   Column,
@@ -59,6 +60,7 @@ export class MerchantApplication {
   taxIdType!: TaxIdType | null;
 
   /** AES-256-GCM ciphertext from FieldEncryptionService; never returned by the API. */
+  @Exclude()
   @Column({ type: 'text', nullable: true, select: false })
   taxIdEncrypted?: string | null;
 

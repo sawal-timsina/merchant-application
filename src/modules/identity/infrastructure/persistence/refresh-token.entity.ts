@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import {
   Column,
   CreateDateColumn,
@@ -33,6 +34,7 @@ export class RefreshToken {
   familyId!: string;
 
   /** Hex SHA-256 of the token. Lookups are by hash, so no plaintext token is ever persisted. */
+  @Exclude()
   @Column({ type: 'char', length: 64, unique: true })
   tokenHash!: string;
 

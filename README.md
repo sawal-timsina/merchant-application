@@ -190,6 +190,9 @@ Also: login rate limiting and equalized timing for unknown emails, a global JWT 
 are private unless marked public), users reloaded on every request so deactivation is
 immediate, request logs redact `authorization`, cookies, passwords, refresh tokens and tax ids,
 errors never leak internals, and no secrets are committed (`.env.example` holds placeholders).
+Responses are built by explicit mappers (e.g. `toApplicationResponse`), never by returning
+entities; as a backstop, a global `ClassSerializerInterceptor` strips the `@Exclude()`d
+`password_hash`, `tax_id_encrypted` and `token_hash` if an entity is ever returned directly.
 See [adr/0005](adr/0005-field-level-encryption.md).
 
 ## Optional enhancements
@@ -233,6 +236,8 @@ kernels 6.19 and newer. See [adr/0007](adr/0007-mongodb-audit-store.md).
 
 Every route is versioned in the URI and served under `/api/v1` (e.g. `POST /api/v1/auth/login`);
 paths below are relative to that prefix. Swagger UI (`/docs`, `/docs-json`) is not versioned.
+List endpoints return `{ items, total, page, pageSize }`; Swagger documents each with its own
+item schema (`@ApiPageResponse(Model)` in `src/core/http/pagination.ts`).
 
 | Method | Path                                    | Purpose                                                     |
 | ------ | --------------------------------------- | ----------------------------------------------------------- |
