@@ -1,5 +1,6 @@
+import { Reflector } from '@nestjs/core';
 import { join } from 'node:path';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ClassSerializerInterceptor, ValidationPipe, VersioningType } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './core/http/http-exception.filter';
@@ -10,6 +11,8 @@ export function configureApp(app: NestExpressApplication): NestExpressApplicatio
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+
   app.enableShutdownHooks();
   // Static helpers for the Swagger UI (e.g. /js/swagger-autologin.js); served outside the guards.
   app.useStaticAssets(join(__dirname, '..', 'public'));
