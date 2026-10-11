@@ -1,17 +1,19 @@
 import { Controller, Get, Inject, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiTags,
+} from '@nestjs/swagger';
 import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { BusinessRuleError } from '../../../core/domain/domain-error';
 import { ApiErrors } from '../../../core/http/error.response';
-import { type Page, PageQueryDto } from '../../../core/http/pagination';
+import { ApiPageResponse, type Page, PageQueryDto } from '../../../core/http/pagination';
 import { UserRole } from '../../identity/domain/user-role';
 import { Roles } from '../../identity/presentation/roles.decorator';
-import {
-  AUDIT_READER,
-  type AuditReader,
-  type AuditRecord,
-  type DecisionStatsRow,
-} from '../domain/audit-record';
+import { AUDIT_READER, type AuditReader } from '../domain/audit-record';
+import { AuditRecordResponse, DecisionStatsResponse } from './audit.response';
 
 class AuditQueryDto extends PageQueryDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(64) entityType?: string;
@@ -36,13 +38,15 @@ export class AuditController {
   constructor(@Inject(AUDIT_READER) private readonly reader: AuditReader) {}
 
   @Get()
-  list(@Query() query: AuditQueryDto): Promise<Page<AuditRecord>> {
+  @ApiPageResponse(AuditRecordResponse)
+  list(@Query() query: AuditQueryDto): Promise<Page<AuditRecordResponse>> {
     return this.reader.find(query);
   }
 
   /** Decisions per reviewer per UTC day, e.g. for workload and approval-rate dashboards. */
   @Get('stats/decisions')
-  decisionStats(@Query() query: DecisionStatsQueryDto): Promise<DecisionStatsRow[]> {
+  @ApiOkResponse({ type: [DecisionStatsResponse] })
+  decisionStats(@Query() query: DecisionStatsQueryDto): Promise<DecisionStatsResponse[]> {
     const from = new Date(`${query.from}T00:00:00Z`);
     const to = new Date(`${query.to}T00:00:00Z`);
     const days = (to.getTime() - from.getTime()) / 86_400_000;

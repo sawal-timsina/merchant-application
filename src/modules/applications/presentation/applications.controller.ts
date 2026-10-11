@@ -17,7 +17,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiErrors } from '../../../core/http/error.response';
-import type { Page } from '../../../core/http/pagination';
+import { ApiPageResponse, type Page } from '../../../core/http/pagination';
 import type { Actor } from '../../identity/domain/actor';
 import { UserRole } from '../../identity/domain/user-role';
 import { CurrentActor } from '../../identity/presentation/current-actor.decorator';
@@ -55,6 +55,7 @@ export class ApplicationsController {
   }
 
   @Get()
+  @ApiPageResponse(ApplicationResponse)
   async list(
     @CurrentActor() actor: Actor,
     @Query() query: ListApplicationsQueryDto,

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { ApiErrors } from '../../../core/http/error.response';
-import type { Page } from '../../../core/http/pagination';
+import { ApiPageResponse, type Page } from '../../../core/http/pagination';
 import { UsersService } from '../application/users.service';
 import { UserRole } from '../domain/user-role';
 import type { User } from '../infrastructure/persistence/user.entity';
@@ -36,6 +36,7 @@ export class UsersController {
 
   /** Lists users, e.g. to pick a reviewer id for POST /applications/:id/assign. */
   @Get()
+  @ApiPageResponse(UserResponse)
   async list(@Query() query: ListUsersQueryDto): Promise<Page<UserResponse>> {
     const page = await this.users.list(query);
     return { ...page, items: page.items.map(toUserResponse) };
