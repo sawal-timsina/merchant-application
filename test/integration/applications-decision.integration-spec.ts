@@ -35,7 +35,7 @@ describe('Review decisions', () => {
   }
   const decide = (token: string, id: string, body: object) =>
     http(app)
-      .post(`/applications/${id}/decision`)
+      .post(`/api/v1/applications/${id}/decision`)
       .set(...bearer(token))
       .send(body);
   const decisionCount = async (id: string) => {

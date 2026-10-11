@@ -12,7 +12,7 @@ describe('Authentication', () => {
   afterAll(async () => app.close());
 
   const login = (email: string, password: string) =>
-    http(app).post('/auth/login').send({ email, password });
+    http(app).post('/api/v1/auth/login').send({ email, password });
 
   it('issues an access and refresh token for valid credentials', async () => {
     const user = await createUser(app);
@@ -43,9 +43,9 @@ describe('Authentication', () => {
   });
 
   it('protects routes by default', async () => {
-    await http(app).get('/auth/me').expect(401);
+    await http(app).get('/api/v1/auth/me').expect(401);
     await http(app)
-      .get('/auth/me')
+      .get('/api/v1/auth/me')
       .set(...bearer('garbage'))
       .expect(401);
   });
@@ -54,7 +54,7 @@ describe('Authentication', () => {
     const user = await createUser(app, { role: UserRole.REVIEWER });
     const token = await loginAs(app, user);
     const res = await http(app)
-      .get('/auth/me')
+      .get('/api/v1/auth/me')
       .set(...bearer(token))
       .expect(200);
     expect(res.body).toEqual({
@@ -70,7 +70,7 @@ describe('Authentication', () => {
     const token = await loginAs(app, user);
     await app.get(DataSource).getRepository(User).update(user.id, { isActive: false });
     await http(app)
-      .get('/auth/me')
+      .get('/api/v1/auth/me')
       .set(...bearer(token))
       .expect(401);
   });
@@ -91,10 +91,10 @@ describe('Authentication', () => {
   });
 
   it('keeps the health check public', async () => {
-    await http(app).get('/health').expect(200);
+    await http(app).get('/api/v1/health').expect(200);
   });
 
   it('validates the login body', async () => {
-    await http(app).post('/auth/login').send({ email: 'not-an-email' }).expect(400);
+    await http(app).post('/api/v1/auth/login').send({ email: 'not-an-email' }).expect(400);
   });
 });

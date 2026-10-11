@@ -13,6 +13,6 @@ describe('GET /health', () => {
   });
 
   it('reports the database as up', async () => {
-    await http(app).get('/health').expect(200, { status: 'ok', database: 'up' });
+    await http(app).get('/api/v1/health').expect(200, { status: 'ok', database: 'up' });
   });
 });

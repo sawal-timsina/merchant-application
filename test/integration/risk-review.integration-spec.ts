@@ -36,7 +36,7 @@ describe('Asynchronous risk review', () => {
   async function submitAndRelay(overrides: Record<string, unknown> = {}) {
     const created = await createApplication(app, sales, overrides);
     const res = await http(app)
-      .post(`/applications/${created.id}/submit`)
+      .post(`/api/v1/applications/${created.id}/submit`)
       .set(...bearer(sales))
       .expect(200);
     await app.get(OutboxRelay).relayBatch();
@@ -45,7 +45,7 @@ describe('Asynchronous risk review', () => {
   const getApp = async (id: string) =>
     (
       await http(app)
-        .get(`/applications/${id}`)
+        .get(`/api/v1/applications/${id}`)
         .set(...bearer(admin))
         .expect(200)
     ).body;
@@ -56,7 +56,7 @@ describe('Asynchronous risk review', () => {
     });
   const retry = (token: string, id: string) =>
     http(app)
-      .post(`/applications/${id}/risk-review/retry`)
+      .post(`/api/v1/applications/${id}/risk-review/retry`)
       .set(...bearer(token));
 
   it('scores the submission and moves it to UNDER_REVIEW', async () => {

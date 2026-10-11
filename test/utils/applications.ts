@@ -26,7 +26,7 @@ export async function createApplication(
   overrides: Record<string, unknown> = {},
 ) {
   const res = await http(app)
-    .post('/applications')
+    .post('/api/v1/applications')
     .set(...bearer(token))
     .send(validApplicationPayload(overrides))
     .expect(201);

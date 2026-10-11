@@ -69,7 +69,7 @@ describe('Risk review reaper', () => {
     kyb.failures = Number.POSITIVE_INFINITY;
     const created = await createApplication(app, sales);
     await http(app)
-      .post(`/applications/${created.id}/submit`)
+      .post(`/api/v1/applications/${created.id}/submit`)
       .set(...bearer(sales))
       .expect(200);
     await app.get(OutboxRelay).relayBatch();

@@ -16,7 +16,7 @@ same event several times, late or out of order.
 - `KYB_MODE=callback` (default stays `sync`). The worker sends the verification request and stores
   the assessment as `AWAITING_CALLBACK` with the provider reference. A job redelivered in this state
   does not send a second request.
-- `POST /webhooks/kyb` is authenticated by signature, not by user JWT:
+- `POST /api/v1/webhooks/kyb` is authenticated by signature, not by user JWT:
   `X-Kyb-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<raw body>">`.
   The timestamp is inside the MAC, requests older or newer than 5 minutes are rejected, comparison
   is constant-time, and several secrets are accepted at once (`KYB_WEBHOOK_SECRETS=new,old`) for

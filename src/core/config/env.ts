@@ -60,7 +60,7 @@ export const envSchema = z
     /** Callback mode: fail the review if the provider has not called back within this window. */
     KYB_CALLBACK_TIMEOUT_MS: z.coerce.number().int().positive().default(1_800_000),
     /** Where the simulated provider delivers callbacks (dev only). */
-    KYB_WEBHOOK_URL: z.url().default('http://localhost:3000/webhooks/kyb'),
+    KYB_WEBHOOK_URL: z.url().default('http://localhost:3000/api/v1/webhooks/kyb'),
 
     /** Where audit entries are stored. mongo requires MONGO_URI. */
     AUDIT_STORE: z.enum(['postgres', 'mongo']).default('postgres'),

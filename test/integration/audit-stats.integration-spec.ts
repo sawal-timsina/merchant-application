@@ -19,7 +19,7 @@ describe(`Decision stats (${process.env.AUDIT_STORE ?? 'postgres'} store)`, () =
 
   const stats = (query: string) =>
     http(app)
-      .get(`/audit/stats/decisions?${query}`)
+      .get(`/api/v1/audit/stats/decisions?${query}`)
       .set(...bearer(admin));
 
   it('counts each reviewer’s decisions per day by outcome', async () => {
@@ -39,7 +39,7 @@ describe(`Decision stats (${process.env.AUDIT_STORE ?? 'postgres'} store)`, () =
         assignedReviewerId: reviewerUser.id,
       });
       await http(app)
-        .post(`/applications/${created.id}/decision`)
+        .post(`/api/v1/applications/${created.id}/decision`)
         .set(...bearer(reviewer))
         .send(body)
         .expect(200);
@@ -70,7 +70,7 @@ describe(`Decision stats (${process.env.AUDIT_STORE ?? 'postgres'} store)`, () =
   it('is ADMIN only', async () => {
     const sales = await loginAs(app, await createUser(app, { role: UserRole.SALES }));
     await http(app)
-      .get('/audit/stats/decisions?from=2026-01-01&to=2026-01-02')
+      .get('/api/v1/audit/stats/decisions?from=2026-01-01&to=2026-01-02')
       .set(...bearer(sales))
       .expect(403);
   });

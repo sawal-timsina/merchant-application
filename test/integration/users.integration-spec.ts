@@ -27,7 +27,7 @@ describe('User management', () => {
 
   const create = (token: string, body: object) =>
     http(app)
-      .post('/users')
+      .post('/api/v1/users')
       .set(...bearer(token))
       .send(body);
 
@@ -52,7 +52,7 @@ describe('User management', () => {
     const application = await createApplication(app, sales);
     await setStatus(app, application.id, 'SUBMITTED');
     await http(app)
-      .post(`/applications/${application.id}/assign`)
+      .post(`/api/v1/applications/${application.id}/assign`)
       .set(...bearer(admin))
       .send({ reviewerId: res.body.id })
       .expect(200);
@@ -107,7 +107,7 @@ describe('User management', () => {
     it('lists users filtered by role, newest first, without password hashes', async () => {
       const reviewer = (await create(admin, newUser({ role: 'REVIEWER' })).expect(201)).body;
       const res = await http(app)
-        .get('/users?role=REVIEWER&pageSize=100')
+        .get('/api/v1/users?role=REVIEWER&pageSize=100')
         .set(...bearer(admin))
         .expect(200);
       expect(res.body).toMatchObject({ page: 1, pageSize: 100, total: expect.any(Number) });
@@ -118,7 +118,7 @@ describe('User management', () => {
 
     it.each(['role=BOGUS', 'pageSize=101'])('rejects ?%s', async (query) => {
       await http(app)
-        .get(`/users?${query}`)
+        .get(`/api/v1/users?${query}`)
         .set(...bearer(admin))
         .expect(400);
     });
@@ -126,7 +126,7 @@ describe('User management', () => {
     it('is ADMIN only', async () => {
       const token = await loginAs(app, await createUser(app, { role: UserRole.SALES }));
       await http(app)
-        .get('/users')
+        .get('/api/v1/users')
         .set(...bearer(token))
         .expect(403);
     });
@@ -134,7 +134,7 @@ describe('User management', () => {
 
   const patch = (token: string, id: string, body: object) =>
     http(app)
-      .patch(`/users/${id}`)
+      .patch(`/api/v1/users/${id}`)
       .set(...bearer(token))
       .send(body);
   const auditCount = async (id: string, action: string) => {
@@ -152,7 +152,7 @@ describe('User management', () => {
       const body = newUser();
       const created = (await create(admin, body).expect(201)).body;
       const login = await http(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: body.email, password: body.password })
         .expect(200);
 
@@ -160,15 +160,15 @@ describe('User management', () => {
       expect(res.body).toMatchObject({ id: created.id, isActive: false });
 
       await http(app)
-        .get('/auth/me')
+        .get('/api/v1/auth/me')
         .set(...bearer(login.body.accessToken))
         .expect(401);
       await http(app)
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .send({ refreshToken: login.body.refreshToken })
         .expect(401);
       await http(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: body.email, password: body.password })
         .expect(401);
       const [{ open }] = await app
@@ -201,7 +201,7 @@ describe('User management', () => {
       await patch(admin, other.id, { isActive: false }).expect(403);
       const me = (
         await http(app)
-          .get('/auth/me')
+          .get('/api/v1/auth/me')
           .set(...bearer(admin))
       ).body;
       await patch(admin, me.id, { isActive: false }).expect(403);

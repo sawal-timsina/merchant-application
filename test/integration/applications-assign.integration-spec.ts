@@ -23,7 +23,7 @@ describe('Assign reviewer', () => {
 
   const assign = (token: string, id: string, reviewerId: string) =>
     http(app)
-      .post(`/applications/${id}/assign`)
+      .post(`/api/v1/applications/${id}/assign`)
       .set(...bearer(token))
       .send({ reviewerId });
 
@@ -39,7 +39,7 @@ describe('Assign reviewer', () => {
     expect(res.body.assignedReviewerId).toBe(reviewerUser.id);
     const reviewerToken = await loginAs(app, reviewerUser);
     await http(app)
-      .get(`/applications/${id}`)
+      .get(`/api/v1/applications/${id}`)
       .set(...bearer(reviewerToken))
       .expect(200);
   });

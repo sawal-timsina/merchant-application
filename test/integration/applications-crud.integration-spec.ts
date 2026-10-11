@@ -24,16 +24,16 @@ describe('Applications: create, read, list, update', () => {
 
   const post = (token: string, body: object) =>
     http(app)
-      .post('/applications')
+      .post('/api/v1/applications')
       .set(...bearer(token))
       .send(body);
   const get = (token: string, id: string) =>
     http(app)
-      .get(`/applications/${id}`)
+      .get(`/api/v1/applications/${id}`)
       .set(...bearer(token));
   const patch = (token: string, id: string, body: object) =>
     http(app)
-      .patch(`/applications/${id}`)
+      .patch(`/api/v1/applications/${id}`)
       .set(...bearer(token))
       .send(body);
 
@@ -105,7 +105,7 @@ describe('Applications: create, read, list, update', () => {
       const a = await createApplication(app, salesA);
       const b = await createApplication(app, salesB);
       const res = await http(app)
-        .get('/applications?pageSize=100')
+        .get('/api/v1/applications?pageSize=100')
         .set(...bearer(salesB))
         .expect(200);
       const ids = res.body.items.map((i: { id: string }) => i.id);
@@ -124,7 +124,7 @@ describe('Applications: create, read, list, update', () => {
       await createApplication(app, salesA);
       await createApplication(app, salesA);
       const res = await http(app)
-        .get('/applications?status=DRAFT&page=1&pageSize=2')
+        .get('/api/v1/applications?status=DRAFT&page=1&pageSize=2')
         .set(...bearer(admin))
         .expect(200);
       expect(res.body).toMatchObject({ page: 1, pageSize: 2, total: expect.any(Number) });
@@ -138,7 +138,7 @@ describe('Applications: create, read, list, update', () => {
 
     it.each(['pageSize=101', 'page=0', 'status=BOGUS'])('rejects ?%s', async (query) => {
       await http(app)
-        .get(`/applications?${query}`)
+        .get(`/api/v1/applications?${query}`)
         .set(...bearer(admin))
         .expect(400);
     });

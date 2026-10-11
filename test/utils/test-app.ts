@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -20,7 +21,9 @@ export async function createTestApp(
     builder = builder.overrideProvider(token as never).useValue(value);
   }
   const moduleRef = await builder.compile();
-  const app = configureApp(moduleRef.createNestApplication({ logger: false, rawBody: true }));
+  const app = configureApp(
+    moduleRef.createNestApplication<NestExpressApplication>({ logger: false, rawBody: true }),
+  );
   await app.init();
   return app;
 }

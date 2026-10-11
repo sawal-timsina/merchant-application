@@ -10,7 +10,7 @@ export async function loginAs(
   user: { email: string; password: string },
 ): Promise<string> {
   const res = await http(app)
-    .post('/auth/login')
+    .post('/api/v1/auth/login')
     .send({ email: user.email, password: user.password })
     .expect(200);
   return res.body.accessToken as string;

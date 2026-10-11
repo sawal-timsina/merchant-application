@@ -21,7 +21,7 @@ describe(`Audit trail (${process.env.AUDIT_STORE ?? 'postgres'} store)`, () => {
   it('records actions with actor and request id, masked and without secrets', async () => {
     const created = await createApplication(app, sales);
     const submitted = await http(app)
-      .post(`/applications/${created.id}/submit`)
+      .post(`/api/v1/applications/${created.id}/submit`)
       .set(...bearer(sales))
       .expect(200);
     const entries = await findAuditEntries(app, {
@@ -41,13 +41,13 @@ describe(`Audit trail (${process.env.AUDIT_STORE ?? 'postgres'} store)`, () => {
     const created = await createApplication(app, sales);
     await findAuditEntries(app, { entityId: created.id }); // projects pending events in Mongo mode
     const res = await http(app)
-      .get(`/audit?entityType=merchant_application&entityId=${created.id}&pageSize=1`)
+      .get(`/api/v1/audit?entityType=merchant_application&entityId=${created.id}&pageSize=1`)
       .set(...bearer(admin))
       .expect(200);
     expect(res.body).toMatchObject({ page: 1, pageSize: 1, total: 1 });
     expect(res.body.items[0].action).toBe('APPLICATION_CREATED');
     await http(app)
-      .get('/audit')
+      .get('/api/v1/audit')
       .set(...bearer(sales))
       .expect(403);
   });
@@ -55,7 +55,7 @@ describe(`Audit trail (${process.env.AUDIT_STORE ?? 'postgres'} store)`, () => {
   it('keeps the entry atomic with the action: a rejected update leaves no entry', async () => {
     const created = await createApplication(app, sales);
     await http(app)
-      .patch(`/applications/${created.id}`)
+      .patch(`/api/v1/applications/${created.id}`)
       .set(...bearer(sales))
       .send({ businessName: 'X', version: 99 })
       .expect(409);

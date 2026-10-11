@@ -33,10 +33,11 @@ pnpm db:seed                  # admin@, reviewer@, reviewer2@, sales@, sales2@ex
 pnpm dev                      # API on :3000 and the worker, both in watch mode
 ```
 
-Swagger UI: http://localhost:3000/docs. Log in and use the token:
+Swagger UI: http://localhost:3000/docs. A successful "Try it out" on `POST /auth/login` authorizes
+the page automatically (`public/js/swagger-autologin.js`). From the command line:
 
 ```bash
-curl -s localhost:3000/auth/login -H 'content-type: application/json' \
+curl -s localhost:3000/api/v1/auth/login -H 'content-type: application/json' \
   -d '{"email":"sales@example.com","password":"<SEED_USER_PASSWORD>"}'
 ```
 
@@ -44,7 +45,7 @@ curl -s localhost:3000/auth/login -H 'content-type: application/json' \
 
 ```bash
 docker compose --profile app up -d --build   # migrate (one-off), api, worker + Postgres, Redis
-curl localhost:3000/health
+curl localhost:3000/api/v1/health
 ```
 
 The image is built once and started twice: `dist/main.js` for the API and `dist/worker.js` for
@@ -196,7 +197,7 @@ See [adr/0005](adr/0005-field-level-encryption.md).
 ### KYB callback via signed webhook
 
 Set `KYB_MODE=callback`. The worker sends the verification request and parks the assessment as
-`AWAITING_CALLBACK`; the provider later calls `POST /webhooks/kyb`. In development the simulated
+`AWAITING_CALLBACK`; the provider later calls `POST /api/v1/webhooks/kyb`. In development the simulated
 provider delivers that callback itself, signed with the first `KYB_WEBHOOK_SECRETS` entry.
 
 ```
@@ -211,7 +212,7 @@ the reaper after `KYB_CALLBACK_TIMEOUT_MS`. Sign a test call:
 ```bash
 BODY='{"eventId":"evt_1","type":"kyb.verification.completed","reference":"<ref>","data":{"businessVerified":true,"watchlistHit":false},"occurredAt":"2026-10-10T00:00:00Z"}'
 SIG=$(node -e 'const c=require("crypto");const t=Math.floor(Date.now()/1000);process.stdout.write(`t=${t},v1=`+c.createHmac("sha256",process.argv[1]).update(`${t}.`+process.argv[2]).digest("hex"))' "$KYB_SECRET" "$BODY")
-curl -s localhost:3000/webhooks/kyb -H 'content-type: application/json' -H "x-kyb-signature: $SIG" -d "$BODY"
+curl -s localhost:3000/api/v1/webhooks/kyb -H 'content-type: application/json' -H "x-kyb-signature: $SIG" -d "$BODY"
 ```
 
 See [adr/0006](adr/0006-signed-kyb-webhooks.md).
@@ -220,7 +221,7 @@ See [adr/0006](adr/0006-signed-kyb-webhooks.md).
 
 ```bash
 docker compose up -d mongo     # creates the insert/find-only audit_app user
-# .env: AUDIT_STORE=mongo, MONGO_APP_PASSWORD=..., MONGO_URI=mongodb://audit_app:...@localhost:27017/merchant?authSource=merchant
+# .env: AUDIT_STORE=mongo, MONGO_ROOT_USER=..., MONGO_ROOT_PASSWORD=..., MONGO_APP_PASSWORD=..., MONGO_URI=mongodb://audit_app:...@localhost:27017/merchant?authSource=merchant
 ```
 
 Audit entries still commit with their action (they ride the outbox) and are projected into Mongo
@@ -229,6 +230,9 @@ store is configured. Compose pins `mongo:7.0` because MongoDB 8.x/9.x refuse to 
 kernels 6.19 and newer. See [adr/0007](adr/0007-mongodb-audit-store.md).
 
 ## API overview
+
+Every route is versioned in the URI and served under `/api/v1` (e.g. `POST /api/v1/auth/login`);
+paths below are relative to that prefix. Swagger UI (`/docs`, `/docs-json`) is not versioned.
 
 | Method | Path                                    | Purpose                                                     |
 | ------ | --------------------------------------- | ----------------------------------------------------------- |

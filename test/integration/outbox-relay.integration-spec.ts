@@ -27,7 +27,7 @@ describe('Outbox relay', () => {
   it('publishes a submitted application as exactly one risk job, even when relayed twice', async () => {
     const created = await createApplication(app, sales);
     await http(app)
-      .post(`/applications/${created.id}/submit`)
+      .post(`/api/v1/applications/${created.id}/submit`)
       .set(...bearer(sales))
       .expect(200);
 

@@ -4,6 +4,9 @@ How each HTTP endpoint and each worker component uses the services in the codeba
 the classes and methods in `src/`. Shaded boxes are database transactions; everything inside one
 box commits or rolls back together.
 
+HTTP paths are shown relative to the `/api/v1` prefix (URI versioning), e.g. `POST /auth/login`
+is served at `POST /api/v1/auth/login`.
+
 Contents
 
 1. [Shared HTTP request pipeline](#1-shared-http-request-pipeline)

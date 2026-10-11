@@ -1,14 +1,24 @@
-import { type INestApplication, ValidationPipe } from '@nestjs/common';
+import { join } from 'node:path';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './core/http/http-exception.filter';
 
 /** Shared by main.ts and integration tests so both run the same pipeline. */
-export function configureApp(app: INestApplication): INestApplication {
+export function configureApp(app: NestExpressApplication): NestExpressApplication {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
   app.enableShutdownHooks();
+  // Static helpers for the Swagger UI (e.g. /js/swagger-autologin.js); served outside the guards.
+  app.useStaticAssets(join(__dirname, '..', 'public'));
+
+  app.enableVersioning({
+    type: VersioningType.URI,
+    prefix: 'api/',
+    defaultVersion: 'v1',
+  });
 
   const document = SwaggerModule.createDocument(
     app,
@@ -21,7 +31,17 @@ export function configureApp(app: INestApplication): INestApplication {
       .addBearerAuth()
       .build(),
   );
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('docs', app, document, {
+    customJs: '/js/swagger-autologin.js',
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      docExpansion: 'none',
+      filter: true,
+      showRequestHeaders: true,
+      tryItOutEnabled: true,
+    },
+  });
 
   return app;
 }

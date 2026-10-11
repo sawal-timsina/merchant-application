@@ -21,7 +21,7 @@ describe('Submit application', () => {
 
   const submit = (token: string, id: string) =>
     http(app)
-      .post(`/applications/${id}/submit`)
+      .post(`/api/v1/applications/${id}/submit`)
       .set(...bearer(token));
   const outboxCount = async (id: string) => {
     const [{ count }] = await app

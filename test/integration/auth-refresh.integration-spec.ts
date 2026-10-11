@@ -12,12 +12,13 @@ describe('Refresh tokens', () => {
   async function login() {
     const user = await createUser(app);
     const res = await http(app)
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: user.email, password: user.password })
       .expect(200);
     return { user, refreshToken: res.body.refreshToken as string };
   }
-  const refresh = (refreshToken: string) => http(app).post('/auth/refresh').send({ refreshToken });
+  const refresh = (refreshToken: string) =>
+    http(app).post('/api/v1/auth/refresh').send({ refreshToken });
 
   it('rotates: returns a new pair and the new token works', async () => {
     const { refreshToken } = await login();
@@ -56,7 +57,7 @@ describe('Refresh tokens', () => {
 
   it('logout revokes the family', async () => {
     const { refreshToken } = await login();
-    await http(app).post('/auth/logout').send({ refreshToken }).expect(204);
+    await http(app).post('/api/v1/auth/logout').send({ refreshToken }).expect(204);
     await refresh(refreshToken).expect(401);
   });
 

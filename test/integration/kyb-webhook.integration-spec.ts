@@ -57,7 +57,7 @@ describe('KYB callback webhook', () => {
   async function awaitingCallback() {
     const created = await createApplication(app, sales);
     await http(app)
-      .post(`/applications/${created.id}/submit`)
+      .post(`/api/v1/applications/${created.id}/submit`)
       .set(...bearer(sales))
       .expect(200);
     await app.get(OutboxRelay).relayBatch();
@@ -75,7 +75,7 @@ describe('KYB callback webhook', () => {
   const applicationOf = async (id: string) =>
     (
       await http(app)
-        .get(`/applications/${id}`)
+        .get(`/api/v1/applications/${id}`)
         .set(...bearer(admin))
     ).body as { status: string; riskStatus: string };
 
@@ -128,7 +128,7 @@ describe('KYB callback webhook', () => {
   });
 
   it('rejects unsigned requests before validating the body', async () => {
-    await http(app).post('/webhooks/kyb').send({ nonsense: true }).expect(401);
+    await http(app).post('/api/v1/webhooks/kyb').send({ nonsense: true }).expect(401);
   });
 
   it('validates the body of signed requests', async () => {
