@@ -285,6 +285,8 @@ one winner; risk jobs are retried, deduplicated, dead-lettered and reconciled.
 
 Schema changes go through reviewed migrations only (`synchronize` is always off).
 
+Schema overview, relationships, constraints, indexes and enums: [architecture/erd.md](architecture/erd.md).
+
 | Script                                                        | What it does                               |
 | ------------------------------------------------------------- | ------------------------------------------ |
 | `pnpm migration:run`                                          | apply pending migrations                   |
